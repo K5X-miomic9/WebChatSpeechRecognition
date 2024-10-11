@@ -1,4 +1,4 @@
-# Web Chat Speech Recognition
+﻿# Web Chat Speech Recognition
 
 Adds a button for text input via speech recognition.  
 
@@ -11,11 +11,43 @@ see also:
 ## Installation
 
 Tampermonkey: [Edge](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd?hl=de), [Chome](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)  
-Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/TelegramWebSpeechRecognition.user.js)
+Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/WebChatSpeechRecognition.user.js)
+
+## Compatibility
+
+Apps | Browsers | Scriptmanager
+---     | ---        |
+✅ web.telegram.org | ✅ Edge | ✅ Tampermonkey
+✅ chatgpt.com      | ✅ Chome | ❔ Greasemonkey 
+⚠️ seoschmiede.at   | ☑️ Safari | ❔ Violentmonkey
+gemini.google.com   | ❌ Firefox | ❔ Scriptish
+|                   | ❔ Opera| ❔ Greaselion 
+|                   | ❔ Brave
+|                   | ❔ Vivaldi
+
+## Work in Progress
+- [Gemini](https://gemini.google.com/)
+
+
+## Limitations
+
+Firefox does not appear to support a built-in speech recognition service  
+seoschmiede.at seems to restrict microphone access on some os/browsers  
+Safari is not tested by the developer themselves
+
+## Data protection
+
+The developer has disclosed that none of your data will be collected or used.  
+This developer declares that your data
+- will not be sold to third parties
+- will not be used or transferred for purposes unrelated to the main functionality of the article
+- will not be used or transferred to determine creditworthiness or for loan purposes
+
+This explanation only applies to the script itself, not to the third-party services used
 
 ## License
 
-Copyright � 2024 by K5X. All rights reserved. 
+Copyright © 2024 by K5X. All rights reserved. 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to use, copy, modify, merge, publish, and distribute copies of the Software, subject to the following conditions:

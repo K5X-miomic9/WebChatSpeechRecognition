@@ -42,9 +42,9 @@
 
     const gm = {
         available: typeof GM_registerMenuCommand === 'function',
-        registerMenuCommand: GM_registerMenuCommand || function (a, b) { },
-        setValue: GM_setValue || function (a, b) { },
-        getValue: GM_getValue || function (a, b) { return b; },
+        registerMenuCommand: typeof GM_registerMenuCommand === 'function' ? GM_registerMenuCommand : function (a, b) { },
+        setValue: typeof GM_setValue === 'function' ?  GM_setValue : function (a, b) { },
+        getValue: typeof GM_getValue === 'function' ? GM_getValue : function (a, b) { return b; },
         setColor: function() {
 	        const color = prompt('Color of the microphone button: \n(#RRGGBB or web name)', gm.getValue('buttonColor', defaultButtonColor));
 	        if (color) {
@@ -839,7 +839,7 @@
     const observer = new MutationObserver(function () {
         //console.log('DOM changed');
         if (!querySelector(def.buttonContainerSelector)) {
-            console.log(`VERBOE def.buttonContainerSelector not found '${def.buttonContainerSelector}'`);
+            //console.log(`VERBOSE def.buttonContainerSelector not found '${def.buttonContainerSelector}'`);
             return;
         }
         if (insertSpeechButton()) {
