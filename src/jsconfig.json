@@ -7,5 +7,8 @@
 	},
 	"include": [
 		"**/*.js" // Includes all JavaScript files in the directory
-	]
+	],
+	"typeAcquisition": {
+		"include": [ "dompurify" ] // Hier fügst du DOMPurify hinzu, wenn Typdefinitionen verfügbar sind
+	}
 }

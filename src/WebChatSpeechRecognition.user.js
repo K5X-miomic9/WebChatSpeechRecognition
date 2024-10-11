@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Web Chat Speech Recognition Button
 // @namespace    http://tampermonkey.net/
-// @version      1.81
+// @version      1.82
 // @description  Adds a speech recognition button to Telegram Web, ChatGPT
 // @author       K5X
 // @copyright    Copyright © 2024 by K5X. All rights reserved.
@@ -10,18 +10,27 @@
 // @match        https://chatgpt.com/*
 // @match        https://seoschmiede.at/aitools/chatgpt-tool/
 // @match        https://seoschmiede.at/en/aitools/chatgpt-tool/
+// @match        https://gemini.google.com/app
+// @match        https://gemini.google.com/app/*
 // @grant        GM_registerMenuCommand
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @require      https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.10/purify.min.js
 // @downloadURL  https://raw.githubusercontent.com/K5X-miomic9/WebChatSpeechRecognition/refs/heads/main/WebChatSpeechRecognition.user.js
 // @updateURL    https://raw.githubusercontent.com/K5X-miomic9/WebChatSpeechRecognition/refs/heads/main/WebChatSpeechRecognition.user.js
 // ==/UserScript==
 
 (function () {
     'use strict';
-    const version = '1.81'; console.log(`Script version ${version}`);
+    const version = '1.82'; console.log(`Script version ${version}`);
     const defaultButtonColor = '#009000';
     const defaultRecognitionLanguage = 'auto';
+
+    window.onerror = function (e, source, line, col, error) {
+	    if (e instanceof ErrorEvent) console.error(`Global error intercepted: ${e.error}\n${e.source}:${e.lineno}:${e.colno}`);
+	    else console.error(`Global error intercepted: ${error}\n${source}:${line}:${col}\n${e}`);
+        return false;  // but does not prevent the execution of further handlers
+    };
 
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -39,6 +48,54 @@
             console.warn('Microphone access denied. Speech recognition not possible!');
             microphonePermissionGranted = false;
         });
+
+    /**
+    * @description An object containing sanitization methods for different types of content.
+    * @typedef {Object} TrustedTypePolicy
+    * @property {function(string): string} createHTML - Sanitizes HTML content.
+    * @property {function(string): string} createScript - Validates or filters JavaScript content.
+    * @property {function(string): string} createScriptURL - Validates or verifies script URLs.
+    */
+
+    /** An object containing sanitization methods for different types of content. @type {TrustedTypePolicy} */
+    const policy = (function () {
+	    const sanitize = {
+		    createHTML: (input) => {
+			    // TODO DOMPurify or another validation/cleanup can be implemented here
+			    return input;
+		    },
+		    createScript: (input) => {
+			    // TODO Validation or filtering of JavaScript content
+			    return input;
+		    },
+		    createScriptURL: (input) => {
+			    // TODO Validation or verification of the URL
+			    return input;
+		    }
+	    };
+
+	    /** DOMPurify
+	    * @typedef {Object} DOMPurify
+	    * @property {function(string): string} sanitize - Sanitizes HTML content.
+	    */
+
+	    if (typeof DOMPurify !== 'undefined') {
+            sanitize.createHTML = (input) => DOMPurify.sanitize(input);
+            console.log('DOMPurify is available!');
+	    } else {
+		    console.warn('DOMPurify is not available!');
+	    }
+	    /**@type {TrustedTypePolicy} */
+	    const policy = window.trustedTypes && window.trustedTypes.createPolicy
+		    ? window.trustedTypes.createPolicy('default', sanitize)
+		    : { createHTML: sanitizeHtml };
+	    if (window.trustedTypes) {
+		    console.log('Trusted Types are activated on this page.');
+	    } else {
+		    console.warn('Trusted Types are not activated on this page.');
+        }
+        return policy;
+    })();
 
     const gm = {
         available: typeof GM_registerMenuCommand === 'function',
@@ -171,6 +228,32 @@
                 </button>`,
 	        getEmojiHTML: ([id, alt]) => `${alt}`,
             sendButtonSelector: '#anfragen'
+        },
+        "gemini": {
+            inputFieldSelector: 'div.ql-editor.textarea',
+            inputFieldPlaceholderSelector: '.ql-editor.textarea',
+            getInputFieldPlaceholderText: () => document.querySelector('.ql-editor.textarea').getAttribute('data-placeholder'),
+            buttonContainerSelector: '.input-buttons-wrapper-bottom',
+            buttonNeighborSelector: '.upload-button',
+	        buttonSelector: '#speechRecognitionButton',
+            buttonHTML: `
+                 <style>
+                     #speechRecognitionButton {
+                         all: unset;
+                         color: ${buttonColor} !important;
+                         outline: none !important;
+                         border: none; background: none; cursor: hand; margin-left: 5px; padding: 0 0 0 0;
+                     }
+                </style>
+                <div>
+                    <button id="speechRecognitionButton">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C7.582 2 4 5.582 4 10V14C4 18.418 7.582 22 12 22C16.418 22 20 18.418 20 14V10C20 5.582 16.418 2 12 2ZM12 20C8.686 20 6 17.314 6 14V10C6 6.686 8.686 4 12 4C15.314 4 18 6.686 18 10V14C18 17.314 15.314 20 12 20ZM12 6C10.895 6 10 6.895 10 8V14C10 15.105 10.895 16 12 16C13.105 16 14 15.105 14 14V8C14 6.895 13.105 6 12 6Z" fill="currentColor"></path>
+                        </svg>
+                    </button>
+                </div>`,
+	        getEmojiHTML: ([id, alt]) => `${alt}`,
+            sendButtonSelector: 'send-button'
         }
     }   
 
@@ -211,6 +294,9 @@
             } else if (window.location.href.startsWith('https://seoschmiede.at/')) {
                 app.name = 'ChatGPT (w/o registration)';
                 app.id = 'seoschmiede';
+            } else if (window.location.href.startsWith('https://gemini.google.com/app')) {
+                app.name = 'Gemini';
+	            app.id = 'gemini';
             }
 
             if (app.id !== prev) {
@@ -239,6 +325,7 @@
     var _autoPunctuation = false;
     var _forceListen = false;
     var _pause = false;
+    var _isDomChanging = false;
 
     var recordButton = null;    
 
@@ -258,10 +345,59 @@
             const neighbor = querySelector(def.buttonNeighborSelector);
 	        if (!neighbor) { console.log(`Element not found "${def.buttonNeighborSelector}"`); return false; }
 	        const placeholder = document.createElement('placeholder');
-	        neighbor.parentElement.insertBefore(placeholder, neighbor);
-	        placeholder.outerHTML = def.buttonHTML;
+            neighbor.parentElement.insertBefore(placeholder, neighbor);
+            _isDomChanging = true;
+            // ERROR: This document requires 'TrustedHTML' assignment. (app.id: gemini)
+            placeholder.outerHTML = policy.createHTML(def.buttonHTML);
+            //fallback: placeholder.replaceWith(createSpeechButtonFallback()); // partial use def.buttonHTML!
+
+            _isDomChanging = false;
 	        return true;
         }
+    }
+
+    function createSpeechButtonFallback() {
+	    // Button-Element erstellen
+	    var button = document.createElement('button');
+	    button.id = 'speechRecognitionButton';
+	    button.className = 'btn-icon';
+	    button.style.border = 'none';
+	    button.style.background = 'none';
+	    button.style.cursor = 'pointer';
+	    button.style.marginLeft = '5px';
+	    button.style.padding = '0';
+
+	    // SVG-Element erstellen
+	    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	    svg.setAttribute('width', '24');
+	    svg.setAttribute('height', '24');
+	    svg.setAttribute('viewBox', '0 0 24 24');
+	    svg.setAttribute('fill', 'none');
+	    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+	    // Pfad-Element erstellen
+	    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+	    path.setAttribute('fill-rule', 'evenodd');
+	    path.setAttribute('clip-rule', 'evenodd');
+	    path.setAttribute('d', 'M12 2C7.582 2 4 5.582 4 10V14C4 18.418 7.582 22 12 22C16.418 22 20 18.418 20 14V10C20 5.582 16.418 2 12 2ZM12 20C8.686 20 6 17.314 6 14V10C6 6.686 8.686 4 12 4C15.314 4 18 6.686 18 10V14C18 17.314 15.314 20 12 20ZM12 6C10.895 6 10 6.895 10 8V14C10 15.105 10.895 16 12 16C13.105 16 14 15.105 14 14V8C14 6.895 13.105 6 12 6Z');
+	    path.setAttribute('fill', 'currentColor');
+
+	    // Pfad-Element zum SVG hinzufügen
+	    svg.appendChild(path);
+
+	    // SVG zum Button hinzufügen
+        button.appendChild(svg);
+
+        var match = def.buttonHTML.match(/<button([^>]*)>/);
+        if (match) {
+            var attributes = match[1];
+            var classMatch = attributes.match(/class="([^"]+)"/);
+            if (classMatch) button.className = classMatch[1];
+            var styleMatch = attributes.match(/style="([^"]+)"/);
+            if (styleMatch) button.style.cssText = styleMatch[1]; 
+        }
+
+        return button;
     }
 
     /** Instance of SpeechRecognition @type {SpeechRecognition} */
@@ -310,6 +446,7 @@
 
     function startContinuousRecording() {
         console.log('startContinuousRecording');
+        if (!_recognition) { console.warn("Speech recognition not initialized."); return; }
         _lastFinalTranscript = Date.now();
         _recognition.continuous = true; // Enable continuous mode
         _finalTranscript = ''; // Clear the final transcript
@@ -323,7 +460,7 @@
 
     function stopRecording(cancel) {
         console.log('stopRecording '+ (cancel ? 'abort' : ''));
-        if (cancel) _recognition.abort(); else _recognition.stop();
+        if (_recognition) { if (cancel) _recognition.abort(); else _recognition.stop(); }
         recordButton.style.color = '';
         _isContinuous = false; _forceListen = false;
         _isRecording = false;
@@ -392,10 +529,10 @@
             const lastNode = inputField.lastChild;
             let currentText = '';
             if (lastNode) {
-                // telegram:
-                if (lastNode.nodeType === Node.TEXT_NODE) currentText = lastNode.textContent.trim();
                 // chatgpt:
-                else if (lastNode.nodeName.toLowerCase() === 'p' && !lastNode.classList.contains('placeholder')) currentText = lastNode.innerText.trim();
+                if (lastNode.nodeName === 'P' && !lastNode.classList.contains('placeholder')) currentText = lastNode.innerText.trim();
+                // telegram:
+                else if (lastNode.nodeType === Node.TEXT_NODE) currentText = lastNode.textContent.trim();
             }
 
             if (_lastInterimTranscript) { // restore currentText w/o interim transcript
@@ -509,7 +646,10 @@
             if (node && node.nodeType === Node.TEXT_NODE) {
                 node.textContent = remainingText; // Aktualisiere den vorhandenen TextNode
             } else if (node && node.nodeName === 'P') {
-                node.innerHTML = remainingText;
+                const p = /**@type {HTMLElement}*/(node);
+                const lastNode = p.lastChild;
+                if (lastNode.nodeType === Node.TEXT_NODE) lastNode.textContent = remainingText;
+                else p.appendChild(document.createTextNode(remainingText));
             } else {
                 inputField.appendChild(document.createTextNode(remainingText)); // Füge neuen TextNode hinzu
             }
@@ -524,7 +664,7 @@
             if (node && currentText) node.textContent = currentText; // remove emoji command
 
             const dummy = document.createElement('dummy');
-            dummy.innerHTML = def.getEmojiHTML(emojis[key]);
+            dummy.innerHTML = policy.createHTML(def.getEmojiHTML(emojis[key]));
             const emoji = dummy.firstChild;
 
             if (node && node.nodeType === Node.TEXT_NODE) {
@@ -678,7 +818,7 @@
 
         setCursorToEnd(inputField);
         return true;
-    }
+    }  
 
     /** Deletes the last word or punctuation (incl. non-text node) */
     function deleteLastWord() {
@@ -803,8 +943,11 @@
 
     function clickSendButton() {
         const sendButton = querySelector(def.sendButtonSelector);
-        if (sendButton) {
-            sendButton.click();
+        if (sendButton && app.id !== 'gemini') { sendButton.click(); }
+        else {
+            inputField.focus();
+	        const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, shiftKey: false });
+	        inputField.dispatchEvent(event);
         }
     }
 
@@ -826,7 +969,7 @@
                    
 	    let lang = 'en-US';
         if      (text.includes('Nachricht')) lang = 'de-DE';
-        else if (text.includes('Message'  )) lang = 'en-US';
+        else if (text.includes('eingeben')) lang = 'de-DE'; // gemini
 	    if (oldLang === lang) return;
 	    console.log(`Language detected: ${lang}`);
         _lang = lang;
@@ -837,9 +980,10 @@
 
     // Observe changes in the DOM to find the input container and insert the button
     const observer = new MutationObserver(function () {
+        if (_isDomChanging) return;
         //console.log('DOM changed');
         if (!querySelector(def.buttonContainerSelector)) {
-            //console.log(`VERBOSE def.buttonContainerSelector not found '${def.buttonContainerSelector}'`);
+            console.log(`VERBOSE def.buttonContainerSelector not found '${def.buttonContainerSelector}'`);
             return;
         }
         if (insertSpeechButton()) {
@@ -863,7 +1007,7 @@
     });
     window.addEventListener('focus', function () {
 	    
-    });    
+    });
 })();
 
 /*
