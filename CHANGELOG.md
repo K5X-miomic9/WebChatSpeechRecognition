@@ -1,3 +1,7 @@
+# 1.83
+- Copoilot
+- DOMPurify
+
 # 1.82
 - Gemini
 - Trusted Types

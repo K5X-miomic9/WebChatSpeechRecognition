@@ -15,19 +15,39 @@ Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/r
 
 ## Compatibility
 
-Apps | Browsers | Scriptmanager
+Sites | Browsers | Scriptmanager
 ---     | ---        |
-✅ web.telegram.org | ✅ Edge | ✅ Tampermonkey
-✅ chatgpt.com      | ✅ Chome | ❔ Greasemonkey 
-⚠️ seoschmiede.at   | ☑️ Safari | ❔ Violentmonkey
-gemini.google.com   | ❌ Firefox | ❔ Scriptish
-|                   | ❔ Opera| ❔ Greaselion 
-|                   | ❔ Brave
-|                   | ❔ Vivaldi
+✅ web.telegram.org | ✅ Edge | ✅ Tampermonkey
+✅ chatgpt.com      | ✅ Chome | ❔ Greasemonkey 
+⚠️ seoschmiede.at   | ☑️ Safari | ❔ Violentmonkey
+✅ gemini.google.com   | ❌ Firefox | ❔ Scriptish
+✅ copilot.microsoft.com | ❔ Opera| ❔ Greaselion 
+|                   | ❔ Brave
+|                   | ❔ Vivaldi
+
+### Scriptmanager/Browser Cross-Compatibility
+
+| **Script Manager** | **Edge** | **Chrome** | **Safari** | **Firefox** | **Opera** | **Brave** | **Vivaldi** |
+|--------------------|----------|------------|------------|-------------|-----------|-----------|-------------|
+| **Tampermonkey**    | ✅       | ✅         | ✅         | ✅          | ✅        | ✅        | ✅          |
+| **Violentmonkey**   | ✅       | ✅         | ❌         | ✅          | ✅        | ✅        | ✅          |
+| **Greasemonkey**    | ❌       | ❌         | ❌         | ✅          | ❌        | ❌        | ❌          |
+| **Scriptish**       | ❌       | ❌         | ❌         | ✅          | ❌        | ❌        | ❌          |
+| **Greaselion**      | ❌       | ❌         | ❌         | ❌          | ❌        | ❔        | ❌          |
+
+### Overall Tests
+|         | **Edge** | **Chrome** | **Safari** | **Firefox** | **Opera** | **Brave** | **Vivaldi**
+---      | ---       |           |            |             |||
+Telegram | ✅ TM     | ✅ TM    |            |             |
+ChatGPT  | ✅ TM     | ✅ TM    |            |             |
+Gemini   | ✅ TM     | ✅ TM    |            |             |
+Copilot  | ✅ TM     | ✅ TM    |            |             |
+
+TM: Tampermonkey, GM: Greasemonkey, VM: Violentmonkey, S: Scriptish, GL:Greaselion
 
 ## Work in Progress
-- [Gemini](https://gemini.google.com/)
 
+none
 
 ## Limitations
 

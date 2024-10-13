@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Web Chat Speech Recognition Button
 // @namespace    http://tampermonkey.net/
-// @version      1.82
+// @version      1.83
 // @description  Adds a speech recognition button to Telegram Web, ChatGPT
 // @author       K5X
 // @copyright    Copyright © 2024 by K5X. All rights reserved.
@@ -12,6 +12,7 @@
 // @match        https://seoschmiede.at/en/aitools/chatgpt-tool/
 // @match        https://gemini.google.com/app
 // @match        https://gemini.google.com/app/*
+// @match        https://copilot.microsoft.com/*
 // @grant        GM_registerMenuCommand
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -22,7 +23,7 @@
 
 (function () {
     'use strict';
-    const version = '1.82'; console.log(`Script version ${version}`);
+    const version = '1.83'; console.log(`Script version ${version}`);
     const defaultButtonColor = '#009000';
     const defaultRecognitionLanguage = 'auto';
 
@@ -59,6 +60,7 @@
 
     /** An object containing sanitization methods for different types of content. @type {TrustedTypePolicy} */
     const policy = (function () {
+        return null;
 	    const sanitize = {
 		    createHTML: (input) => {
 			    // TODO DOMPurify or another validation/cleanup can be implemented here
@@ -71,31 +73,82 @@
 		    createScriptURL: (input) => {
 			    // TODO Validation or verification of the URL
 			    return input;
-		    }
+            }
 	    };
 
-	    /** DOMPurify
-	    * @typedef {Object} DOMPurify
-	    * @property {function(string): string} sanitize - Sanitizes HTML content.
-	    */
-
-	    if (typeof DOMPurify !== 'undefined') {
-            sanitize.createHTML = (input) => DOMPurify.sanitize(input);
-            console.log('DOMPurify is available!');
-	    } else {
-		    console.warn('DOMPurify is not available!');
-	    }
-	    /**@type {TrustedTypePolicy} */
-	    const policy = window.trustedTypes && window.trustedTypes.createPolicy
-		    ? window.trustedTypes.createPolicy('default', sanitize)
-		    : { createHTML: sanitizeHtml };
-	    if (window.trustedTypes) {
-		    console.log('Trusted Types are activated on this page.');
-	    } else {
-		    console.warn('Trusted Types are not activated on this page.');
+        // copilot: Policy with name "default" already exists.
+        // Refused to create a TrustedTypePolicy named 'default1' because it violates the following Content Security Policy directive: "trusted-types default copilotPolicy dompurify @centro/hvc-loader".
+        /**@type {TrustedTypePolicy} */
+        var policy;
+        if (window.copilotTrustedTypesPolicy) {
+	        try {
+		        const placeholder = document.createElement('placeholder');
+                placeholder.innerHTML = window.copilotTrustedTypesPolicy.createHTML('<p>test</p>');
+                console.log('Trusted Types are activated on this page. using "copilotTrustedTypesPolicy"');
+                return window.copilotTrustedTypesPolicy;
+	        } catch (ex) { console.warn(ex); }
+        }
+        if (window.trustedTypes && window.trustedTypes.defaultPolicy) {
+            policy = window.trustedTypes.defaultPolicy;
+            if (policy) {
+                try {
+                    const placeholder = document.createElement('placeholder');
+                    placeholder.innerHTML = policy.createHTML('<p>test</p>');
+                    console.log('Trusted Types are activated on this page. using "default"');
+                    return policy;
+                } catch (ex) { console.warn(ex);}
+            }
+        }
+        if (window.trustedTypes && window.trustedTypes.createPolicy) {
+            try {
+                policy = window.trustedTypes.createPolicy('dompurify', sanitize);
+                console.log('Trusted Types are activated on this page. create "dompurify "');
+                return policy;
+            } catch (ex) {
+                console.warn('Trusted Types policy "default" is not creatable. ' + ex);
+                console.log(Object.keys(window));
+            }
+        } else {
+	        console.warn('Trusted Types are not activated on this page.');
+            policy = sanitize;
         }
         return policy;
     })();
+
+    (function () {
+	    /** DOMPurify
+        * @typedef {Object} DOMPurify
+        * @property {function(string): string} sanitize - Sanitizes HTML content.
+        */
+
+	    if (typeof DOMPurify !== 'undefined') {
+		    console.log('DOMPurify is available!');
+            const cleanElement = DOMPurify.sanitize('<div>Test</div>', { RETURN_DOM_FRAGMENT: true }).firstChild;
+            document.body.appendChild(cleanElement);
+            cleanElement.remove();
+		    console.log('DOMPurify injection successful!');
+		    //sanitize.createHTML = (input) => DOMPurify.sanitize(input);
+		    //sanitize.createElement = (input) => DOMPurify.sanitize(input, { RETURN_DOM_FRAGMENT: true }).body.firstChild;
+	    } else {
+		    console.warn('DOMPurify is not available!');
+	    }
+    })();
+
+    /** Create DocumentFragment from HTML using DOMPurify
+     * @param {String} html
+     * @returns a DocumentFragment or throws an exception if DOMPurify not available an HtmlElement (div)
+     */
+    function createElementsFromHtml(html) {
+        if (typeof DOMPurify !== 'undefined') {
+            const cleanFragment = DOMPurify.sanitize(html, {
+	            RETURN_DOM_FRAGMENT: true,
+                SAFE_FOR_TEMPLATES: true,
+                FORCE_BODY: true
+            });
+            return cleanFragment;
+        }
+        throw 'createElementsFromHtml failed. DOMPurify is not available.';
+    }
 
     const gm = {
         available: typeof GM_registerMenuCommand === 'function',
@@ -131,15 +184,15 @@
 
     /**
     * @typedef {Object} Definition
-    * @property {string} inputFieldSelector - selector for the input element
-    * @property {string} inputFieldPlaceholderSelector - selector for the input element placeholder
+    * @property {string|function} inputFieldSelector - selector for the input element
+    * @property {string|function} inputFieldPlaceholderSelector - selector for the input element placeholder
     * @property {function} getInputFieldPlaceholderText
-    * @property {string} buttonContainerSelector - selector for the container
-    * @property {string} buttonNeighborSelector - selector for the neighbor
-    * @property {string} buttonSelector - selector for the new button
+    * @property {string|function} buttonContainerSelector - selector for the container
+    * @property {string|function} buttonNeighborSelector - selector for the neighbor
+    * @property {string|function} buttonSelector - selector for the new button
     * @property {string} buttonHTML - HTML for the button
     * @property {function} getEmojiHTML - function to get emoji HTML
-    * @property {string} sendButtonSelector - selector for the send button
+    * @property {string|function} sendButtonSelector - selector for the send button
     */
 
     /** current definition, updated in app.onAppIdChanged @type {Definition} */
@@ -166,7 +219,7 @@
                     </button>
                 </div>`,
             buttonContainerSelector: () => document.querySelector('button[data-testid="send-button"]').parentElement.parentElement,
-            buttonNeighborSelector: () => document.querySelector('button[data-testid="send-button"]').parentElement.parentElement.lastElementChild.previousElementSibling,
+            buttonNeighborSelector: () => document.querySelector('button[data-testid="send-button"]').parentElement.parentElement.previousElementSibling,
             getEmojiHTML:([id, alt])=>`${alt}`,
             sendButtonSelector: 'button[data-testid="send-button"]'
         },
@@ -200,10 +253,13 @@
             buttonNeighborSelector: '.btn-icon.btn-menu-toggle.attach-file',
             buttonSelector: '#speechRecognitionButton',
             buttonHTML: `
-                 <style>
-                     button.btn-icon.speechRecognitionButton {
-                         color: ${buttonColor}; /* Defines the default color */
-                     }
+                <style>
+                    button.btn-icon.speechRecognitionButton {
+                        color: ${buttonColor};
+                    }
+                    button.btn-icon.speechRecognitionButton:hover {
+                        background-color: #2B2B2B !important;
+                    }
                 </style>
                 <button id="speechRecognitionButton" class="btn-icon speechRecognitionButton" style="border: none; background: none; cursor: pointer; margin-left: 5px; padding: 0;">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -238,23 +294,47 @@
 	        buttonSelector: '#speechRecognitionButton',
             buttonHTML: `
                  <style>
-                     #speechRecognitionButton {
-                         all: unset;
-                         color: ${buttonColor} !important;
-                         outline: none !important;
-                         border: none; background: none; cursor: hand; margin-left: 5px; padding: 0 0 0 0;
+                     .speechRecognition > button {
+                         color: ${buttonColor};
                      }
+                    .speechRecognition > button:hover {
+                        background-color: #2F3030;
+                    }
                 </style>
-                <div>
-                    <button id="speechRecognitionButton">
+                <div class="speechRecognition">
+                    <button id="speechRecognitionButton" class="mat-mdc-icon-button" style="" title="Spracheingabe">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C7.582 2 4 5.582 4 10V14C4 18.418 7.582 22 12 22C16.418 22 20 18.418 20 14V10C20 5.582 16.418 2 12 2ZM12 20C8.686 20 6 17.314 6 14V10C6 6.686 8.686 4 12 4C15.314 4 18 6.686 18 10V14C18 17.314 15.314 20 12 20ZM12 6C10.895 6 10 6.895 10 8V14C10 15.105 10.895 16 12 16C13.105 16 14 15.105 14 14V8C14 6.895 13.105 6 12 6Z" fill="currentColor"></path>
                         </svg>
                     </button>
                 </div>`,
 	        getEmojiHTML: ([id, alt]) => `${alt}`,
-            sendButtonSelector: 'send-button'
+            sendButtonSelector: 'button[title="Nachricht übermitteln"]' //TODO
+        },
+        "copilot": {
+	        inputFieldSelector: '#userInput',
+	        inputFieldPlaceholderSelector: '#userInput',
+	        getInputFieldPlaceholderText: () => document.querySelector('#userInput').getAttribute('placeholder'),
+            buttonContainerSelector: () => document.querySelector('button[data-testid="audio-call-button"]')?.parentElement?.parentElement,
+            buttonNeighborSelector: () => querySelector(def.buttonContainerSelector)?.children[2],
+	        buttonSelector: '#speechRecognitionButton',
+	        buttonHTML: `
+                 <style>
+                     .speechRecognition > button {
+                         color: ${buttonColor};                         
+                     }
+                </style>
+                <div class="relative my-1 shrink-0 size-10 speechRecognition" style="transform: none; transform-origin: 50% 50% 0px;">
+                    <button id="speechRecognitionButton" title="Speech Regocnition" class="absolute size-10 rounded-xl fill-foreground-750 p-2 fill-foreground-800 active:text-foreground-600 active:fill-foreground-600 dark:active:text-foreground-650 dark:active:fill-foreground-650 bg-transparent hover:bg-black/5 active:bg-black/3 dark:hover:bg-black/30 dark:active:bg-black/20" style="opacity: 1; will-change: auto;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C7.582 2 4 5.582 4 10V14C4 18.418 7.582 22 12 22C16.418 22 20 18.418 20 14V10C20 5.582 16.418 2 12 2ZM12 20C8.686 20 6 17.314 6 14V10C6 6.686 8.686 4 12 4C15.314 4 18 6.686 18 10V14C18 17.314 15.314 20 12 20ZM12 6C10.895 6 10 6.895 10 8V14C10 15.105 10.895 16 12 16C13.105 16 14 15.105 14 14V8C14 6.895 13.105 6 12 6Z" fill="currentColor"></path>
+                        </svg>
+                    </button>
+                </div>`,
+	        getEmojiHTML: ([id, alt]) => `${alt}`,
+	        sendButtonSelector: 'button[title="Nachricht übermitteln"]' //TODO
         }
+
     }   
 
     const app = {
@@ -297,6 +377,9 @@
             } else if (window.location.href.startsWith('https://gemini.google.com/app')) {
                 app.name = 'Gemini';
 	            app.id = 'gemini';
+            } else if (window.location.href.startsWith('https://copilot.microsoft.com/')) {
+                app.name = 'Copilot';
+	            app.id = 'copilot';
             }
 
             if (app.id !== prev) {
@@ -314,6 +397,7 @@
     var _lang = 'en-US';
 
     var inputField = null;
+    var recordButton = null;    
 
     var _isRecording = false; // Track if the recording is active
     var _isContinuous = false; // Track if continuous recording is active
@@ -327,7 +411,6 @@
     var _pause = false;
     var _isDomChanging = false;
 
-    var recordButton = null;    
 
     // Function to insert the speech button
     function insertSpeechButton() {
@@ -340,16 +423,19 @@
         return true;
 
         function insert() {
-	        const container = querySelector(def.buttonContainerSelector);
-	        if (!container) { console.log(`Element not found "${def.buttonContainerSelector}"`); return false; }
+	        //const container = querySelector(def.buttonContainerSelector);
+	        //if (!container) { console.log(`Element not found "${def.buttonContainerSelector}"`); return false; }
             const neighbor = querySelector(def.buttonNeighborSelector);
 	        if (!neighbor) { console.log(`Element not found "${def.buttonNeighborSelector}"`); return false; }
-	        const placeholder = document.createElement('placeholder');
-            neighbor.parentElement.insertBefore(placeholder, neighbor);
-            _isDomChanging = true;
+            //const placeholder = document.createElement('placeholder');
+            //neighbor.parentElement.insertBefore(placeholder, neighbor);
+            _isDomChanging = true; // suppresses our MutationObserver
             // ERROR: This document requires 'TrustedHTML' assignment. (app.id: gemini)
-            placeholder.outerHTML = policy.createHTML(def.buttonHTML);
+            // placeholder.outerHTML = policy.createHTML(def.buttonHTML);
             //fallback: placeholder.replaceWith(createSpeechButtonFallback()); // partial use def.buttonHTML!
+            const container = neighbor.parentElement;
+            const elements = createElementsFromHtml(def.buttonHTML);
+            container.insertBefore(elements, neighbor);
 
             _isDomChanging = false;
 	        return true;
@@ -664,7 +750,7 @@
             if (node && currentText) node.textContent = currentText; // remove emoji command
 
             const dummy = document.createElement('dummy');
-            dummy.innerHTML = policy.createHTML(def.getEmojiHTML(emojis[key]));
+            dummy.innerHTML = policy.createHTML(def.getEmojiHTML(emojis[key])); //TODO
             const emoji = dummy.firstChild;
 
             if (node && node.nodeType === Node.TEXT_NODE) {
@@ -966,7 +1052,7 @@
         const oldLang = _recognition ? _recognition.lang : '';
         const text = tryCall(() => def.getInputFieldPlaceholderText());
         if (!text) return;
-                   
+
 	    let lang = 'en-US';
         if      (text.includes('Nachricht')) lang = 'de-DE';
         else if (text.includes('eingeben')) lang = 'de-DE'; // gemini
@@ -982,15 +1068,12 @@
     const observer = new MutationObserver(function () {
         if (_isDomChanging) return;
         //console.log('DOM changed');
-        if (!querySelector(def.buttonContainerSelector)) {
-            console.log(`VERBOSE def.buttonContainerSelector not found '${def.buttonContainerSelector}'`);
-            return;
+        if (!recordButton || !document.contains(recordButton)) {            
+            if (insertSpeechButton()) {
+                inputField = querySelector(def.inputFieldSelector);
+            }
         }
-        if (insertSpeechButton()) {
-            inputField = querySelector(def.inputFieldSelector);
-        }
-        detectLanguage(); //TODO performance
-		//observer.disconnect(); // Stop observing once the button is added
+        detectLanguage(); //TODO optimize performance
     });
     observer.observe(document.body, { childList: true, subtree: true });
     console.log('observer initialized');
