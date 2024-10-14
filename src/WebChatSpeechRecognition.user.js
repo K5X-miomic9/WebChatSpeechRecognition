@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Web Chat Speech Recognition Button
 // @namespace    http://tampermonkey.net/
-// @version      1.83
+// @version      1.83.2
 // @description  Adds a speech recognition button to Telegram Web, ChatGPT
 // @author       K5X
 // @copyright    Copyright © 2024 by K5X. All rights reserved.
@@ -23,7 +23,7 @@
 
 (function () {
     'use strict';
-    const version = '1.83'; console.log(`Script version ${version}`);
+    const version = '1.83.2'; console.log(`Script version ${version}`);
     const defaultButtonColor = '#009000';
     const defaultRecognitionLanguage = 'auto';
 
@@ -164,8 +164,14 @@
 	        }
         },
         setLanguage: function () {
-	        const lang = prompt('Speech recognition langauge: \n(en, de, auto)', gm.getValue('recognitionLanguage', defaultRecognitionLanguage));
-	        if (lang) {
+	        let lang = prompt('Speech recognition langauge: \n(en, de, auto)', gm.getValue('recognitionLanguage', defaultRecognitionLanguage));
+            if (lang) {
+                switch (lang) {
+                    case 'en': lang = 'en-US'; break;
+                    case 'de': lang = 'de-DE'; break;
+                    case 'en-US': case 'de-DE': ; break;
+                    default: alert('Language not supported.'); return;
+                }
 		        gm.setValue('recognitionLanguage', lang);
                 console.log(`Language saved: ${lang}`);
                 location.reload();
@@ -1071,15 +1077,23 @@
     }
 
     function detectLanguage() {
+        let lang = 'en-US';
         const oldLang = _recognition ? _recognition.lang : '';
-        const text = tryCall(() => def.getInputFieldPlaceholderText());
-        if (!text) return;
 
-	    let lang = 'en-US';
-        if      (text.includes('Nachricht')) lang = 'de-DE';
-        else if (text.includes('eingeben')) lang = 'de-DE'; // gemini
-	    if (oldLang === lang) return;
-	    console.log(`Language detected: ${lang}`);
+        if (recognitionLanguage === 'auto') {            
+            const text = tryCall(() => def.getInputFieldPlaceholderText());
+            if (!text) return;
+            if (text.includes('Nachricht')) lang = 'de-DE';
+            else if (text.includes('eingeben')) lang = 'de-DE'; // gemini
+            if (oldLang === lang) return;
+            console.log(`Language detected: ${lang}`);
+            _lang = lang;
+        } else {
+            lang = recognitionLanguage;
+            if (oldLang === lang) return;
+            console.log(`cutom language selected: ${lang}`);
+        }
+
         _lang = lang;
         translateEmojis(lang);
 	    translateCommands(lang);
