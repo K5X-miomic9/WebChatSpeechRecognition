@@ -17,8 +17,8 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @require      https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.10/purify.min.js
-// @downloadURL  https://raw.githubusercontent.com/K5X-miomic9/WebChatSpeechRecognition/refs/heads/main/WebChatSpeechRecognition.user.js
-// @updateURL    https://raw.githubusercontent.com/K5X-miomic9/WebChatSpeechRecognition/refs/heads/main/WebChatSpeechRecognition.user.js
+// @downloadURL  https://github.com/K5X-miomic9/WebChatSpeechRecognition/blob/develop/src/WebChatSpeechRecognition.user.js
+// @updateURL    https://github.com/K5X-miomic9/WebChatSpeechRecognition/blob/develop/src/WebChatSpeechRecognition.user.js
 // ==/UserScript==
 
 (function () {
