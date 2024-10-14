@@ -1,9 +1,9 @@
 {
 	"compilerOptions": {
-		"target": "ES2017",
+		"target": "ES2019",
 		"checkJs": true, // Keep the type check for JavaScript
 		"noEmit": true, // Prevents any files from being compiled
-		"lib": [ "es2017", "dom" ] // Füge "dom" hinzu, um Browser-APIs zu erkennen
+		"lib": [ "es2019", "dom" ] // Füge "dom" hinzu, um Browser-APIs zu erkennen
 	},
 	"include": [
 		"**/*.js" // Includes all JavaScript files in the directory

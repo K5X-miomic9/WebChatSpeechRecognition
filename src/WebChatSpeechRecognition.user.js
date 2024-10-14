@@ -611,56 +611,55 @@
             }
         }
 
-        if (inputField) {
-            const lastNode = inputField.lastChild;
-            let currentText = '';
-            if (lastNode) {
-                // chatgpt:
-                if (lastNode.nodeName === 'P' && !lastNode.classList.contains('placeholder')) currentText = lastNode.innerText.trim();
-                // telegram:
-                else if (lastNode.nodeType === Node.TEXT_NODE) currentText = lastNode.textContent.trim();
+        const lastNode = getLastTextNodeOrParent();
+        let lastText = '';
+        if (lastNode) {
+            // chatgpt, gemini:
+            if (lastNode.nodeName === 'P') {	            
+                if (lastNode.classList.contains('placeholder')) lastText = '';// chatgpt
+                else lastText = lastNode.innerText.trim();
             }
-
-            if (_lastInterimTranscript) { // restore currentText w/o interim transcript
-	            const t = currentText.trimEnd();
-                currentText = t.slice(0, t.length - _lastInterimTranscript.trim().length).trimEnd() + ' ';
-                _lastInterimTranscript = '';
-            }
-
-            if (interimTranscript) {
-                console.log(`Interim: "${interimTranscript}"`);
-                _lastInterimTranscript = interimTranscript + ' ';
-                updateTextNodeContent(lastNode, currentText + _lastInterimTranscript);
-            }
-
-            if (_finalTranscript) {
-                console.log(`Final:    "${_finalTranscript}"`);
-                if (!_autoPunctuation && /[.,:;!?]$/.test(_finalTranscript)) _autoPunctuation = true;
-                Object.keys(replacements).forEach(function (key) {
-                    var escapedKey = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                    var pattern = new RegExp(`\\b${escapedKey}\\b`, 'gi');
-                    _finalTranscript = _finalTranscript.replace(pattern, replacements[key]);
-                });
-                _lastInterimTranscript = '';
-                _lastFinalTranscript = Date.now();
-
-                if (checkForCommand(currentText, _finalTranscript)) {
-                    _recognition.stop(); // Restart the _recognition process
-                } else {
-                    if (_pause) updateTextNodeContent(lastNode, currentText);
-                    else updateTextNodeContentWithEmoji(lastNode, currentText, _finalTranscript);
-                }
-                _finalTranscript = '';
-            }
-
-            notifyInputChanged();
+            // telegram:
+            else if (lastNode.nodeType === Node.TEXT_NODE) lastText = lastNode.textContent.trim();
+            // copilot:
+            else if (lastNode.nodeName === 'TEXTAREA') lastText = lastNode.value;
+            // unknown:
+            else { console.warn('Unknown type of input field'); return; }
         }
 
-        // Ensure the button resets correctly if recording stops
-        if (!_isContinuous) {
-            recordButton.style.color = '';
-            _isRecording = false;
+        if (_lastInterimTranscript) { // restore currentText w/o interim transcript
+	        const t = lastText.trimEnd();
+            lastText = t.slice(0, t.length - _lastInterimTranscript.trim().length).trimEnd() + ' ';
+            _lastInterimTranscript = '';
         }
+
+        if (interimTranscript) {
+            console.log(`Interim: "${interimTranscript}"`);
+            _lastInterimTranscript = interimTranscript + ' ';
+            updateContent(lastNode, lastText + _lastInterimTranscript);
+        }
+
+        if (_finalTranscript) {
+            console.log(`Final:    "${_finalTranscript}"`);
+            if (!_autoPunctuation && /[.,:;!?]$/.test(_finalTranscript)) _autoPunctuation = true;
+            Object.keys(replacements).forEach(function (key) {
+                var escapedKey = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                var pattern = new RegExp(`\\b${escapedKey}\\b`, 'gi');
+                _finalTranscript = _finalTranscript.replace(pattern, replacements[key]);
+            });
+            _lastInterimTranscript = '';
+            _lastFinalTranscript = Date.now();
+
+            if (checkForCommand(lastText, _finalTranscript)) {
+                _recognition.stop(); // Restart the _recognition process
+            } else {
+                if (_pause) updateContent(lastNode, lastText);
+                else appendContent(lastNode, lastText, _finalTranscript);
+            }
+            _finalTranscript = '';
+        }
+
+        notifyInputChanged();
     };
 
     /* chatgpt empty inputField
@@ -673,20 +672,23 @@
 
     function getLastTextNodeOrParent() {
         if (!inputField) return null;
-        var lastChild = inputField.lastChild;	   
+        if (inputField.nodeName === 'TEXTAREA') return inputField; // copilot
+        const lastChild = inputField.lastChild;	   
         if (!lastChild) return inputField;
         if (lastChild.nodeType === Node.TEXT_NODE) return lastChild;
-        if (lastChild.nodeName.toLowerCase() !== 'p') return inputField;
+        if (lastChild.nodeName !== 'P') return inputField;
+        // <P>
         if (!lastChild.lastChild) return lastChild;
         if (lastChild.lastChild.nodeType === Node.TEXT_NODE) return lastChild.lastChild;
         return lastChild;
     }
 
     // Funktion, um den Text im letzten Knoten zu aktualisieren oder neuen Textknoten hinzuzufügen
-    function updateTextNodeContent(node, newText) {
+    function updateContent(node, newText) {
         newText = newText.trim() + ' ';        
-        
-        if (node?.nodeType === Node.TEXT_NODE) node.textContent = newText;
+
+        if (inputField.nodeName === 'TEXTAREA') inputField.value = newText;
+        else if (node?.nodeType === Node.TEXT_NODE) node.textContent = newText;
         else if (node?.nodeName === 'P') {
             node.removeAttribute('placeholder'); // chatgpt   
             if(node.lastChild?.nodeType === Node.TEXT_NODE) node.lastChild.textContent = newText;
@@ -695,15 +697,15 @@
         else inputField.appendChild(document.createTextNode(newText));
     }
 
-    function updateTextNodeContentWithEmoji(node, currentText, newText) {
-        console.log(`updateTextNodeContentWithEmoji "${currentText}" "${newText}"\n  ${node?.textContent}`);
+    function appendContent(node, lastText, newText) {
+        console.log(`updateTextNodeContentWithEmoji "${lastText}" "${newText}"\n  ${node?.textContent}`);
         
         // "Äh, Mutti, Sonne."
         var match = /^(Emoji[.,]?|Äh[,.]?\sMutti[,.]?|Mutti[,.]?)\s+(\w+)[.,]?\s*$/i.exec(newText);
-        if (match && appendEmoji(match[2], currentText)) return;
+        if (match && appendEmoji(match[2], lastText)) return;
 
         // Den Text vorbereiten (Leerzeichen hinzufügen, wenn nötig)
-        newText = currentText + newText.trim() + ' ';
+        newText = lastText + newText.trim() + ' ';
 
         let lastIndex = 0;
 
@@ -729,15 +731,17 @@
         // Füge den restlichen Text nach dem letzten Emoji hinzu
         if (lastIndex < newText.length) {
             const remainingText = newText.substring(lastIndex);
-            if (node && node.nodeType === Node.TEXT_NODE) {
-                node.textContent = remainingText; // Aktualisiere den vorhandenen TextNode
+            if (inputField.nodeName === 'TEXTAREA') { // copilot
+                inputField.value = remainingText;
+            } else if (node && node.nodeType === Node.TEXT_NODE) {
+                node.textContent = remainingText; 
             } else if (node && node.nodeName === 'P') {
                 const p = /**@type {HTMLElement}*/(node);
                 const lastNode = p.lastChild;
                 if (lastNode.nodeType === Node.TEXT_NODE) lastNode.textContent = remainingText;
                 else p.appendChild(document.createTextNode(remainingText));
             } else {
-                inputField.appendChild(document.createTextNode(remainingText)); // Füge neuen TextNode hinzu
+                inputField.appendChild(document.createTextNode(remainingText)); 
             }
         }
 
@@ -766,11 +770,24 @@
     }
 
     function notifyInputChanged() {
-        inputField.focus();
-        setCursorToEnd(inputField);
+        inputField.focus();       
 
-        const event = new Event('input', { bubbles: true });
-        inputField.dispatchEvent(event);
+        // copilot
+        if (inputField.nodeName === 'TEXTAREA') {
+            if (inputField.value.length > 0) {
+                const lastChar = inputField.value.slice(-1);
+                document.execCommand('insertText', false, lastChar);
+            } else {
+                inputField.value = ' ';
+                document.execCommand('delete');
+            }
+            // TODO use Range and/or Selection-API instead
+        } else {
+	        const event = new Event('input', { bubbles: true });
+	        inputField.dispatchEvent(event);
+        }
+
+        setCursorToEnd(inputField);
     }
 
     function onError(event) {
@@ -812,7 +829,7 @@
 	    '-':               ['dash',                    'bindestrich'        ],
 	    ':':               ['colon',                   'doppelpunkt'        ],
         // commands          en-US                      de-DE
-	    'Delete-Word':     ['delete word',             'löschen'            ],
+	    'Delete-Word':     ['delete',                  'löschen'            ],
         'Delete-Sentence': ['delete sentence',         'Satz löschen'       ],
         'Delete-Paragraph':['delete paragraph',        'Absatz löschen'     ],
 	    'Delete-All':      ['delete all',              'Alles löschen'      ],
@@ -847,7 +864,7 @@
         const command = commands[transcript];
         if (!command) return false;
 
-        updateTextNodeContent(inputField.lastChild, currentText); // remove the command from inputField
+        updateContent(inputField.lastChild, currentText); // remove the command from inputField
         notifyInputChanged();
 
         if (command === 'Delete-Word') {
@@ -1017,13 +1034,18 @@
     }
 
     function setCursorToEnd(el) {
-        const range = document.createRange();
-        const selection = window.getSelection();
-        range.selectNodeContents(el);
-        range.collapse(false); // Place cursor at the end
-        selection.removeAllRanges();
-        selection.addRange(range);
-        el.focus(); // Focus input field again
+        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+            el.selectionStart = el.selectionEnd = el.value.length;
+            el.focus();
+        } else {
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.selectNodeContents(el);
+            range.collapse(false); // Place cursor at the end
+            selection.removeAllRanges();
+            selection.addRange(range);
+            el.focus(); // Focus input field again
+        }
         console.log('Cursor set');
     }
 

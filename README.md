@@ -1,17 +1,50 @@
 ﻿# Web Chat Speech Recognition
 
-Adds a button for text input via speech recognition.  
+Adds a button for text input via speech recognition. Supports voice commands.  
 
-Apps: [Telegram-Web](https://web.telegram.org/), [ChatGPT](https://chatgpt.com/)  
-Languages: English, German
+Apps: [Telegram](https://web.telegram.org/), [ChatGPT](https://chatgpt.com/), 
+[Gemini](https://gemini.google.com/app/), [Copilot](https://copilot.microsoft.com/)  
+Display languages: English, German  
+Voice commands: English, German 
+Recognition languages: auto/selectable  
 
 see also:  
 [ChatGPT w/o registration](https://seoschmiede.at/en/aitools/chatgpt-tool/) (seoschmiede.at) (sorry! microphone access restricted)
 
 ## Installation
 
-Tampermonkey: [Edge](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd?hl=de), [Chome](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)  
+Scriptmanager Tampermonkey: [Edge](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd?hl=de), [Chome](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)  
 Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/WebChatSpeechRecognition.user.js)
+
+1) Install the scriptmanager, if you don't have one yet
+2) Click the [download link](https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/WebChatSpeechRecognition.user.js)
+3) The scriptmanager recognizes the userscript, click `Install` to continue
+
+## Voice commands
+
+**Action** | **English command** | **German command**
+--------|---------|--------
+|**●  replacements**: 
+`...`             |three dots              |drei punkte        
+`.`               |dot                     |punkt              
+`,`               |comma                   |komma              
+`?`               |question mark           |fragezeichen       
+`???`             |three question marks    |drei fragezeichen  
+`!`               |exclamation mark        |ausrufezeichen     
+`!!!`             |three exclamation marks |drei Ausrufezeichen
+|`-`               |dash                    |bindestrich        
+|`:`               |colon                   |doppelpunkt        
+|**●  commands**:        
+Delete-Word     | delete                  |Löschen            
+Delete-Sentence | delete sentence         |Satz löschen       
+Delete-Paragraph| delete paragraph        |Absatz löschen     
+Delete-All      | delete all              |Alles löschen      
+New-Paragraph   | new paragraph           |Neuer Absatz       
+Undo            | undo                    |Rückgängig         
+Send            | send                    |Senden             
+Listen          | listen                  |Zuhören            
+EndVoiceInput   | end                     |Ende               
+Pause           | pause                   |Pause              
 
 ## Compatibility
 
@@ -21,9 +54,12 @@ Sites | Browsers | Scriptmanager
 ✅ chatgpt.com      | ✅ Chome | ❔ Greasemonkey 
 ⚠️ seoschmiede.at   | ☑️ Safari | ❔ Violentmonkey
 ✅ gemini.google.com   | ❌ Firefox | ❔ Scriptish
-✅ copilot.microsoft.com | ❔ Opera| ❔ Greaselion 
-|                   | ❔ Brave
+⏳ copilot.microsoft.com | ❌ Opera| ❔ Greaselion 
+|                  | ❔ Brave
 |                   | ❔ Vivaldi
+
+<details>
+  <summary>More compatibility tables: </summary>
 
 ### Scriptmanager/Browser Cross-Compatibility
 
@@ -35,25 +71,35 @@ Sites | Browsers | Scriptmanager
 | **Scriptish**       | ❌       | ❌         | ❌         | ✅          | ❌        | ❌        | ❌          |
 | **Greaselion**      | ❌       | ❌         | ❌         | ❌          | ❌        | ❔        | ❌          |
 
+### SpeechRecognition/Browser Compatibility
+
+| **Script Manager**        | **Edge** | **Chrome** | **Safari** | **Firefox** | **Opera** | **Brave** | **Vivaldi** |
+|--------------------       |----------|------------|------------|-------------|-----------|-----------|-------------|
+| **SpeechRecognition-API¹** | ✅       | ✅         | ✅         | ❌          | ❌        | ❌        | ❌          |
+
+
+¹) see https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition#browser_compatibility
+</details>
+
 ### Overall Tests
 |         | **Edge** | **Chrome** | **Safari** | **Firefox** | **Opera** | **Brave** | **Vivaldi**
----      | ---       |           |            |             |||
-Telegram | ✅ TM     | ✅ TM    |            |             |
-ChatGPT  | ✅ TM     | ✅ TM    |            |             |
-Gemini   | ✅ TM     | ✅ TM    |            |             |
-Copilot  | ✅ TM     | ✅ TM    |            |             |
+---      | ---       |           |             |             |||
+ChatGPT  | ✅ TM     | ✅ TM    | 🕙          | -            | -| - | - 
+Copilot  | ⏳ TM     | ⏳ TM    | 🕙          | -           | -| - | - 
+Gemini   | ✅ TM     | ✅ TM    | 🕙          | -            | -| - | - 
+Telegram | ✅ TM     | ✅ TM    | 🕙          | -            | - | - | - 
 
 TM: Tampermonkey, GM: Greasemonkey, VM: Violentmonkey, S: Scriptish, GL:Greaselion
 
 ## Work in Progress
 
-none
+- Copilot
 
 ## Limitations
 
-Firefox does not appear to support a built-in speech recognition service  
-seoschmiede.at seems to restrict microphone access on some os/browsers  
-Safari is not tested by the developer themselves
+- Firefox,  does not appear to support the SpeechRecognition-API
+- seoschmiede.at seems to restrict microphone access on some os/browsers  
+- Safari is not tested by the developer themselves
 
 ## Data protection
 
