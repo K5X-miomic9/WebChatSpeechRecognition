@@ -21,6 +21,17 @@
 // @updateURL    https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/WebChatSpeechRecognition.user.js
 // ==/UserScript==
 
+/*****************************************************************************\
+╔═════════════════════════════════════════════════════════════════════════════╗
+║ PLEASE DO NOT PUBLISH OR PROMOTE!                                           ║
+║                                                                             ║
+║ The repository and its content are intended for limited testing only.       ║
+║ Please avoid sharing URLs or information publicly to ensure smooth testing  ║
+║ until the script has been officially authorized by the respective operators ║
+║ of the websites or services used.                                           ║
+╚═════════════════════════════════════════════════════════════════════════════╝
+\*****************************************************************************/
+
 /* NOTES:
  * DOMPurify is required for Copilot support.
  * TrustedTypes (or DOMPurify) is required for Gemini support.
@@ -1237,19 +1248,18 @@
 })();
 
 /*
-Copyright © 2024 by K5X. All rights reserved.
+Copyright © 2024 by K5X. All rights reserved. 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to use,
-copy, modify, merge, publish, and distribute copies of the Software, subject
-to the following conditions:
+of this software and associated documentation files (the "Software"), to use 
+the Software, subject to the following conditions:
 
-1. The software may not be sublicensed, sold or used for direct or indirect
-   commercial purposes, including the generation of revenue, without the
-   express permission of the copyright holder, regardless of whether or not
-   changes have been made to the original code.
-2. The above copyright notice and this permission notice shall be included in
-   all copies or substantial portions of the Software.
+1. The software may not be modified, merged, published, distributed, 
+sublicensed, sold, or used for any direct or indirect commercial purposes, 
+including generating income, whether or not modifications have been made to 
+the original code, without explicit permission from the copyright holder.
+2. The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -1259,7 +1269,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-This license is not a general permission that this software may be used on
-third party websites or services without prior agreement with the respective
+This license is not a general permission that the software may be used on 
+third party websites or services without prior agreement with the respective 
 operators of these websites or services.
+
 */
