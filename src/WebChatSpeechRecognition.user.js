@@ -22,6 +22,7 @@
 // ==/UserScript==
 
 /*****************************************************************************\
+ * README: https://github.com/K5X-miomic9/WebChatSpeechRecognition           *
 ╔═════════════════════════════════════════════════════════════════════════════╗
 ║ PLEASE DO NOT PUBLISH OR PROMOTE!                                           ║
 ║                                                                             ║
