@@ -62,7 +62,7 @@ Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/r
 ## Compatibility
 
 Sites | Browsers | Scriptmanager
----     | ---        |
+---     | ---        | ---
 ✅ web.telegram.org | ✅ Edge | ✅ Tampermonkey
 ✅ chatgpt.com      | ✅ Chome | ❔ Greasemonkey 
 ⚠️ seoschmiede.at   | ☑️ Safari | ❔ Violentmonkey
@@ -96,7 +96,7 @@ Sites | Browsers | Scriptmanager
 
 ### Overall Tests
 |         | **Edge** | **Chrome** | **Safari** | **Firefox** | **Opera** | **Brave** | **Vivaldi**
----      | ---       |           |             |              |||
+---      | ---       | ---       | ---         | ---         | ---       | ---       | ---
 ChatGPT  | ✅ TM     | ✅ TM    | 🕙          | -            | -| - | - 
 Copilot  | ✅ TM     | ✅ TM    | 🕙          | -            | -| - | - 
 Gemini   | ✅ TM     | ✅ TM    | 🕙          | -            | -| - | - 
