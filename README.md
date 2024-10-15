@@ -23,29 +23,29 @@ Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/r
 
 ## Voice commands¹
 
-**Action**        | **English command**<br/>(en-US) | **German command**<br/>(de-DE) | **French command**<br/>(fr-FR) | **Italian command**<br/>(it-IT)
---------|---------|--------
+|**Action**        | **English command**<br/>(en-US) | **German command**<br/>(de-DE) | **French command**<br/>(fr-FR) | **Italian command**<br/>(it-IT)
+|------------------|------------------------|------------------------|-----------------------------|--------------------------|
 |**●  replacements**: 
-`...`             |three dots              |drei punkte          |Trois points                  |tre puntini
-`.`               |dot                     |punkt              	 |Point                         |punto
-`,`               |comma                   |komma              	 |Virgule                       |virgola
-`?`               |question mark           |fragezeichen       	 |Point d'interrogation         |punto interrogativo
-`???`             |three question marks    |drei fragezeichen  	 |Trois points d'interrogation  |tre punti interrogativi
-`!`               |exclamation mark        |ausrufezeichen     	 |Point d'exclamation           |punto esclamativo
-`!!!`             |three exclamation marks |drei Ausrufezeichen	 |Trois points d'exclamation    |tre punti esclamativi
-|`-`              |dash                    |bindestrich        	 |Trait d'union                 |trattino
-|`:`              |colon                   |doppelpunkt        	 |Deux points                   |due punti
+|`...`             |three dots              |drei punkte             |Trois points                  |tre puntini
+|`.`               |dot                     |punkt              	 |Point                         |punto
+|`,`               |comma                   |komma              	 |Virgule                       |virgola
+|`?`               |question mark           |fragezeichen       	 |Point d'interrogation         |punto interrogativo
+|`???`             |three question marks    |drei fragezeichen  	 |Trois points d'interrogation  |tre punti interrogativi
+|`!`               |exclamation mark        |ausrufezeichen     	 |Point d'exclamation           |punto esclamativo
+|`!!!`             |three exclamation marks |drei Ausrufezeichen	 |Trois points d'exclamation    |tre punti esclamativi
+|`-`               |dash                    |bindestrich        	 |Trait d'union                 |trattino
+|`:`               |colon                   |doppelpunkt        	 |Deux points                   |due punti
 |**●  commands**:        										 
-Delete-Word       | delete                 |Löschen            	 |Supprimer                     |cancella
-Delete-Sentence   | delete sentence        |Satz löschen       	 |Supprimer la phrase           |cancella frase
-Delete-Paragraph  | delete paragraph       |Absatz löschen     	 |Supprimer le paragraphe       |cancella paragrafo
-Delete-All        | delete all             |Alles löschen      	 |Tout supprimer                |cancella tutto
-New-Paragraph     | new paragraph          |Neuer Absatz       	 |Nouveau paragraphe            |nuovo paragrafo
-Undo              | undo                   |Rückgängig         	 |Annuler                       |annulla
-Send              | send                   |Senden             	 |Envoyer                       |invia
-Listen            | listen                 |Zuhören            	 |Écouter                       |ascolta
-EndVoiceInput     | end                    |Ende               	 |Fin                           |fine
-Pause             | pause                  |Pause              	 |Pause                         |pausa
+|Delete-Word       | delete                 |Löschen            	 |Supprimer                     |cancella
+|Delete-Sentence   | delete sentence        |Satz löschen       	 |Supprimer la phrase           |cancella frase
+|Delete-Paragraph  | delete paragraph       |Absatz löschen     	 |Supprimer le paragraphe       |cancella paragrafo
+|Delete-All        | delete all             |Alles löschen      	 |Tout supprimer                |cancella tutto
+|New-Paragraph     | new paragraph          |Neuer Absatz       	 |Nouveau paragraphe            |nuovo paragrafo
+|Undo              | undo                   |Rückgängig         	 |Annuler                       |annulla
+|Send              | send                   |Senden             	 |Envoyer                       |invia
+|Listen            | listen                 |Zuhören            	 |Écouter                       |ascolta
+|EndVoiceInput     | end                    |Ende               	 |Fin                           |fine
+|Pause             | pause                  |Pause              	 |Pause                         |pausa
 
 ¹) Voice commands are only available if the recognition language is one of the above, in all other cases en-US is used. 
 
