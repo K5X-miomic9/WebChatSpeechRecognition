@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Web Chat Speech Recognition Button
 // @namespace    http://tampermonkey.net/
-// @version      1.84.1
+// @version      1.85
 // @description  Adds a speech recognition button to Telegram Web, ChatGPT, Gemini and Copilot
 // @author       K5X
 // @copyright    Copyright © 2024 by K5X. All rights reserved.
@@ -41,7 +41,7 @@
  */
 
 (function () {
-    const version = '1.84.1'; console.log(`Script version ${version}`);
+    const version = '1.85'; console.log(`Script version ${version}`);
     const defaultButtonColor = '#009000';
     const defaultRecognitionLanguage = 'auto';
     const debug = true;
@@ -195,6 +195,11 @@
             gm.setValue('stopRecordingOnBlurOrHidden', !value);
             console.log(`stop listening on blur or hidden: ${!value}`);
 		    location.reload();
+        },
+        setFavorite: function (num) {
+            const dest = window.location.href;
+            gm.setValue(`favorite${num}`, dest);
+            console.log(`favorite1: ${dest}`);
         }
     }
     var buttonColor = gm.getValue ('buttonColor', defaultButtonColor);
@@ -207,6 +212,9 @@
     gm.registerMenuCommand(`Microphone button color: ${buttonColor}`, gm.setColor);
     gm.registerMenuCommand(`Speech recognition language: ${recognitionLanguage}`, gm.setLanguage);
     gm.registerMenuCommand(`Stop listening on blur or hidden: ${stopRecordingOnBlurOrHidden}`, gm.setStopRecordingOnBlurOrHidden);
+    gm.registerMenuCommand('Set favorite 1', () => gm.setFavorite(1));
+    gm.registerMenuCommand('Set favorite 2', () => gm.setFavorite(2));
+    gm.registerMenuCommand('Set favorite 3', () => gm.setFavorite(3));
 
     const supportedLanguages = ['en-US', 'de-DE', 'fr-FR', 'it-IT']; 
 
@@ -882,7 +890,8 @@
 	    'Send':            ['send',                    'Senden'             ,'Envoyer'                      ,'invia'],
 	    'Listen':          ['listen',                  'Zuhören'            ,'Écouter'                      ,'ascolta'],
 	    'EndVoiceInput':   ['end',                     'Ende|Beenden'       ,'Fin'                          ,'fine'],
-        'Pause':           ['pause',                   'Pause'              ,'Pause'                        ,'pausa']
+        'Pause':           ['pause',                   'Pause'              ,'Pause'                        ,'pausa'],
+        'NavigateTo':      ['navigate to*',             'navigiere zu*'     ,'naviguer vers*',              ,'Naviga verso*']
     };
 
     /** commands dictionary  @type { Object < string, string >} */
@@ -900,7 +909,33 @@
 		        commands[cmd] = command;
 	        });
 	    }
-    }   
+    }
+
+    const navigateDefs = {
+        'https://web.telegram.org/'     : ['telegram', 'telegramm|telegram', '//telegram','//telegram|telegramma'],
+        'https://gemini.google.com/'    : ['gemini'  , 'gemini'            , '//gemini', '//gemini'],
+        'https://copilot.microsoft.com/': ['copilot' , 'copilot'           , '//copilot', '//copilot'],
+        'https://chatgpt.com/'          : ['chatgpt' , 'chatgpt'           , '//chatgpt', '//chatgpt'],
+        '$GM_favorite1'                 : ['favorite 1', 'favorit 1'       , 'Favori 1', 'Preferito 1'],
+        '$GM_favorite2'                 : ['favorite 2', 'favorit 2'       , 'Favori 2', 'Preferito 2'],
+        '$GM_favorite3'                 : ['favorite 3', 'favorit 3'       , 'Favori 3', 'Preferito 3']
+    }
+
+    const navigations = {};
+
+    function translateDictionary(source, dest, lang) {
+	    let langIndex = supportedLanguages.indexOf(lang);
+	    if (langIndex === -1) {
+		    console.warn(`Language '${lang}' not supported. Fallback to 'en-US'.`);
+		    langIndex = 0;
+	    }
+        for (const [command, voiceCommandTable] of Object.entries(source)) {
+		    const commandsArray = voiceCommandTable[langIndex].toLowerCase().split('|');
+		    commandsArray.forEach(cmd => {
+			    dest[cmd] = command;
+		    });
+	    }
+    }
 
     /** Checks if a command is present in the current text.
      * @param {string} currentText - Current text (from last text node) without command
@@ -912,6 +947,37 @@
         // french: protected space bevor punctuation
         transcript = transcript.toLowerCase().replace(/[.,:;!?\s]*$/, '');
         console.log(`command? "${currentText}" + "${transcript}"`);
+
+        for (const [key, value] of Object.entries(commands)) {
+	        if (!key.endsWith('*')) continue;
+	        const prefix = key.slice(0, -1);
+            if (transcript.startsWith(prefix)) {
+                console.log(`'${transcript}' matched with key '${key}'`);
+                const rest = transcript.slice(prefix.length).trim();
+                var dest = navigations[rest];
+                if (dest) {
+                    if (dest.startsWith("$GM_")) {
+                        const gmKey = dest.slice(4);
+                        const gmValue = GM_getValue(gmKey, null); // Reads the value with GM_getValue
+                        if (!gmValue) return false;
+                        dest = gmValue;
+                    }
+                    updateContent(inputField.lastChild, currentText); // remove the command from inputField
+                    notifyInputChanged();
+                    //window.location.href = dest;
+                    window.open(dest, rest);
+	                return true;
+                }
+	        }
+        }
+
+        if (transcript === 'navigiere zu ' + 's master mega') {
+	        console.log("navigate");
+	        window.location.href = 'https://web.telegram.org/k/#@SmasterMega';
+	        updateContent(inputField.lastChild, currentText); // remove the command from inputField
+	        notifyInputChanged();
+	        return true;
+        }
 
         const command = commands[transcript];
         if (!command) return false;
@@ -1212,6 +1278,7 @@
             _actualCommandLanguage = commandLanguage;
             translateEmojis(commandLanguage);
             translateCommands(commandLanguage);
+            translateDictionary(navigateDefs, navigations, commandLanguage);
         }
         if (_recognition?.lang !== lang) {
             initSpeechRecognition(lang);
