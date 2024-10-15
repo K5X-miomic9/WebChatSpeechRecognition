@@ -4,12 +4,13 @@ Adds a button for text input via speech recognition. Supports voice commands.
 
 Apps: [Telegram](https://web.telegram.org/), [ChatGPT](https://chatgpt.com/), 
 [Gemini](https://gemini.google.com/app/), [Copilot](https://copilot.microsoft.com/)  
-Display languages: English, German  
-Voice commands: English, German 
+Languages: English, German, French, Italian   
 Recognition languages: auto/selectable  
 
 see also:  
 [ChatGPT w/o registration](https://seoschmiede.at/en/aitools/chatgpt-tool/) (seoschmiede.at) (sorry! microphone access restricted)
+
+[> Changelog](CHANGELOG.md)
 
 ## Installation
 
@@ -20,31 +21,34 @@ Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/r
 2) Click the [download link](https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/WebChatSpeechRecognition.user.js)
 3) The scriptmanager recognizes the userscript, click `Install` to continue
 
-## Voice commands
+## Voice commands¹
 
-**Action** | **English command** | **German command**
+**Action**        | **English command**<br/>(en-US) | **German command**<br/>(de-DE) | **French command**<br/>(fr-FR) | **Italian command**<br/>(it-IT)
 --------|---------|--------
 |**●  replacements**: 
-`...`             |three dots              |drei punkte        
-`.`               |dot                     |punkt              
-`,`               |comma                   |komma              
-`?`               |question mark           |fragezeichen       
-`???`             |three question marks    |drei fragezeichen  
-`!`               |exclamation mark        |ausrufezeichen     
-`!!!`             |three exclamation marks |drei Ausrufezeichen
-|`-`               |dash                    |bindestrich        
-|`:`               |colon                   |doppelpunkt        
-|**●  commands**:        
-Delete-Word     | delete                  |Löschen            
-Delete-Sentence | delete sentence         |Satz löschen       
-Delete-Paragraph| delete paragraph        |Absatz löschen     
-Delete-All      | delete all              |Alles löschen      
-New-Paragraph   | new paragraph           |Neuer Absatz       
-Undo            | undo                    |Rückgängig         
-Send            | send                    |Senden             
-Listen          | listen                  |Zuhören            
-EndVoiceInput   | end                     |Ende               
-Pause           | pause                   |Pause              
+`...`             |three dots              |drei punkte          |Trois points                  |tre puntini
+`.`               |dot                     |punkt              	 |Point                         |punto
+`,`               |comma                   |komma              	 |Virgule                       |virgola
+`?`               |question mark           |fragezeichen       	 |Point d'interrogation         |punto interrogativo
+`???`             |three question marks    |drei fragezeichen  	 |Trois points d'interrogation  |tre punti interrogativi
+`!`               |exclamation mark        |ausrufezeichen     	 |Point d'exclamation           |punto esclamativo
+`!!!`             |three exclamation marks |drei Ausrufezeichen	 |Trois points d'exclamation    |tre punti esclamativi
+|`-`              |dash                    |bindestrich        	 |Trait d'union                 |trattino
+|`:`              |colon                   |doppelpunkt        	 |Deux points                   |due punti
+|**●  commands**:        										 
+Delete-Word       | delete                 |Löschen            	 |Supprimer                     |cancella
+Delete-Sentence   | delete sentence        |Satz löschen       	 |Supprimer la phrase           |cancella frase
+Delete-Paragraph  | delete paragraph       |Absatz löschen     	 |Supprimer le paragraphe       |cancella paragrafo
+Delete-All        | delete all             |Alles löschen      	 |Tout supprimer                |cancella tutto
+New-Paragraph     | new paragraph          |Neuer Absatz       	 |Nouveau paragraphe            |nuovo paragrafo
+Undo              | undo                   |Rückgängig         	 |Annuler                       |annulla
+Send              | send                   |Senden             	 |Envoyer                       |invia
+Listen            | listen                 |Zuhören            	 |Écouter                       |ascolta
+EndVoiceInput     | end                    |Ende               	 |Fin                           |fine
+Pause             | pause                  |Pause              	 |Pause                         |pausa
+
+¹) Voice commands are only available if the recognition language is one of the above, in all other cases en-US is used. 
+
 
 ## Compatibility
 
@@ -83,9 +87,9 @@ Sites | Browsers | Scriptmanager
 
 ### Overall Tests
 |         | **Edge** | **Chrome** | **Safari** | **Firefox** | **Opera** | **Brave** | **Vivaldi**
----      | ---       |           |             |             |||
+---      | ---       |           |             |              |||
 ChatGPT  | ✅ TM     | ✅ TM    | 🕙          | -            | -| - | - 
-Copilot  | ⏳ TM     | ⏳ TM    | 🕙          | -           | -| - | - 
+Copilot  | ✅ TM     | ✅ TM    | 🕙          | -            | -| - | - 
 Gemini   | ✅ TM     | ✅ TM    | 🕙          | -            | -| - | - 
 Telegram | ✅ TM     | ✅ TM    | 🕙          | -            | - | - | - 
 

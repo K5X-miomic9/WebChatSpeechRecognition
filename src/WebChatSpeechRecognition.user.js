@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Web Chat Speech Recognition Button
 // @namespace    http://tampermonkey.net/
-// @version      1.83.2
-// @description  Adds a speech recognition button to Telegram Web, ChatGPT
+// @version      1.84
+// @description  Adds a speech recognition button to Telegram Web, ChatGPT, Gemini and Copilot
 // @author       K5X
 // @copyright    Copyright © 2024 by K5X. All rights reserved.
 // @license      See full license below
@@ -21,34 +21,35 @@
 // @updateURL    https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/WebChatSpeechRecognition.user.js
 // ==/UserScript==
 
+/* NOTES:
+ * DOMPurify is required for Copilot support.
+ * TrustedTypes (or DOMPurify) is required for Gemini support.
+ * Speech Recognition API is required for all services. (but available only for Chrome, Edge)
+ * GM_ function are optional
+ */
+
 (function () {
-    'use strict';
-    const version = '1.83.2'; console.log(`Script version ${version}`);
+    const version = '1.84'; console.log(`Script version ${version}`);
     const defaultButtonColor = '#009000';
     const defaultRecognitionLanguage = 'auto';
+    const debug = true;
 
-    window.onerror = function (e, source, line, col, error) {
+    if (debug) window.onerror = function (e, source, line, col, error) {
 	    if (e instanceof ErrorEvent) console.error(`Global error intercepted: ${e.error}\n${e.source}:${e.lineno}:${e.colno}`);
 	    else console.error(`Global error intercepted: ${error}\n${source}:${line}:${col}\n${e}`);
         return false;  // but does not prevent the execution of further handlers
     };
 
+    const trimEndSpace = (s) => s.replace(/[ ]+$/, '');
+
+    /* @ts-ignore */
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         console.warn('Speech Recognition API is not supported in this browser.');
 	    return;
     }
 
-    var microphonePermissionGranted = null;
-    navigator.mediaDevices.getUserMedia({ audio: true })
-	    .then(() => {
-            console.log('Microphone access allowed');
-            microphonePermissionGranted = true;
-	    })
-	    .catch(() => {
-            console.warn('Microphone access denied. Speech recognition not possible!');
-            microphonePermissionGranted = false;
-        });
+    checkMicrophoneAccessAsync();
 
     /**
     * @description An object containing sanitization methods for different types of content.
@@ -164,29 +165,38 @@
 	        }
         },
         setLanguage: function () {
-	        let lang = prompt('Speech recognition langauge: \n(en, de, auto)', gm.getValue('recognitionLanguage', defaultRecognitionLanguage));
+            let lang = prompt('Speech recognition langauge: \n("auto" or "en", "de", ... or "ll-CC" format)', gm.getValue('recognitionLanguage', defaultRecognitionLanguage));
             if (lang) {
                 switch (lang) {
                     case 'en': lang = 'en-US'; break;
                     case 'de': lang = 'de-DE'; break;
-                    case 'en-US': case 'de-DE': ; break;
-                    default: alert('Language not supported.'); return;
+                    case 'fr': lang = 'fr-FR'; break;
+                    case 'it': lang = 'it-IT'; break;
                 }
 		        gm.setValue('recognitionLanguage', lang);
                 console.log(`Language saved: ${lang}`);
                 location.reload();
 	        }
+        },
+        setStopRecordingOnBlurOrHidden: function () {
+            const value = gm.getValue('stopRecordingOnBlurOrHidden', true);
+            gm.setValue('stopRecordingOnBlurOrHidden', !value);
+            console.log(`stop listening on blur or hidden: ${!value}`);
+		    location.reload();
         }
     }
     var buttonColor = gm.getValue ('buttonColor', defaultButtonColor);
     console.log(`settings: current color: ${buttonColor}`);
     var recognitionLanguage = gm.getValue('recognitionLanguage', defaultRecognitionLanguage);
     console.log(`settings: recognition language: ${recognitionLanguage}`);
+    var stopRecordingOnBlurOrHidden = gm.getValue('stopRecordingOnBlurOrHidden', true);
+    console.log(`settings: stop listening on blur or hidden: ${stopRecordingOnBlurOrHidden}`);
 
     gm.registerMenuCommand(`Microphone button color: ${buttonColor}`, gm.setColor);
     gm.registerMenuCommand(`Speech recognition language: ${recognitionLanguage}`, gm.setLanguage);
+    gm.registerMenuCommand(`Stop listening on blur or hidden: ${stopRecordingOnBlurOrHidden}`, gm.setStopRecordingOnBlurOrHidden);
 
-    const languages = ['en-US', 'de-DE']; 
+    const supportedLanguages = ['en-US', 'de-DE', 'fr-FR', 'it-IT']; 
 
     /**
     * @typedef {Object} Definition
@@ -331,7 +341,7 @@
                      }
                 </style>
                 <div class="relative my-1 shrink-0 size-10 speechRecognition" style="transform: none; transform-origin: 50% 50% 0px;">
-                    <button id="speechRecognitionButton" title="Speech Regocnition" class="absolute size-10 rounded-xl fill-foreground-750 p-2 fill-foreground-800 active:text-foreground-600 active:fill-foreground-600 dark:active:text-foreground-650 dark:active:fill-foreground-650 bg-transparent hover:bg-black/5 active:bg-black/3 dark:hover:bg-black/30 dark:active:bg-black/20" style="opacity: 1; will-change: auto;">
+                    <button id="speechRecognitionButton" title="Speech Recognition" class="absolute size-10 rounded-xl fill-foreground-750 p-2 fill-foreground-800 active:text-foreground-600 active:fill-foreground-600 dark:active:text-foreground-650 dark:active:fill-foreground-650 bg-transparent hover:bg-black/5 active:bg-black/3 dark:hover:bg-black/30 dark:active:bg-black/20" style="opacity: 1; will-change: auto;">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C7.582 2 4 5.582 4 10V14C4 18.418 7.582 22 12 22C16.418 22 20 18.418 20 14V10C20 5.582 16.418 2 12 2ZM12 20C8.686 20 6 17.314 6 14V10C6 6.686 8.686 4 12 4C15.314 4 18 6.686 18 10V14C18 17.314 15.314 20 12 20ZM12 6C10.895 6 10 6.895 10 8V14C10 15.105 10.895 16 12 16C13.105 16 14 15.105 14 14V8C14 6.895 13.105 6 12 6Z" fill="currentColor"></path>
                         </svg>
@@ -401,13 +411,13 @@
     app.init();
 
     var _lang = 'en-US';
-
-    var inputField = null;
-    var recordButton = null;    
+    var _actualCommandLanguage = '';
+    
+    var inputField = /** @type {HTMLElement} */ (null);
+    var recordButton = /** @type {HTMLElement} */ (null);
 
     var _isRecording = false; // Track if the recording is active
-    var _isContinuous = false; // Track if continuous recording is active
-    var _recognition; // Declare _recognition globally for cancellation
+    var _isContinuous = false; // Track if continuous recording is active    
     var _finalTranscript = ''; // Store the final transcript
     var _lastFinalTranscript = 0;
     var _lastInterimTranscript = ''; // Store the last interim result to avoid repetition
@@ -417,14 +427,13 @@
     var _pause = false;
     var _isDomChanging = false;
 
-
     // Function to insert the speech button
     function insertSpeechButton() {
         if (querySelector(def.buttonSelector)) return false;
         console.log('insertSpeechButton');
         if (!insert()) return false;
         recordButton = querySelector(def.buttonSelector);
-        recordButton.addEventListener('click', recordButtonClick);
+        recordButton.addEventListener('click', onRecordButtonClick);
         console.log('Microphone button inserted');
         return true;
 
@@ -493,7 +502,8 @@
     }
 
     /** Instance of SpeechRecognition @type {SpeechRecognition} */
-    var _recognition = null;
+    var _recognition; // Declare _recognition globally for cancellation
+
     function initSpeechRecognition(lang) {
         console.log(`initSpeechRecognition ${lang}`);
         if (_recognition) {
@@ -511,8 +521,8 @@
         _recognition.onend = onEnd;
     }
 
-    function recordButtonClick(e) {
-        console.log('recordButtonClick');
+    function onRecordButtonClick(e) {
+        console.log('onRecordButtonClick');
         e.preventDefault(); // Prevents standard actions such as sending the text
         e.stopPropagation(); // Stops the propagation of events that could lead to transmission
 
@@ -582,7 +592,7 @@
 	    ['1f61c', '😜', 'crazy',  'verrückt'],
 	    ['1f923', '🤣', 'rofl',   'rofl'],
 	    ['1f319', '🌙', 'moon',   'mond'],
-	    ['2600',  '☀', 'son',     'sonne'], // son==sun!
+	    ['2600',  '☀', 'sun|son', 'sonne'],
 	    ['1f62d', '😭', 'crying', 'heulen'],
 	    ['1f642', '🙂', 'smile',  'lächeln'],
 	    ['1f603', '😃', 'laugh',  'lachen'],
@@ -591,17 +601,21 @@
 
     /** emoji dictionary  @type { Object < string, string >} */
     var emojis = null;
-    // Erstellt das emojis Dictionary basierend auf der gewünschten Sprache
+
+    /** Creates the emojis dictionary based on the specified language*/
     function translateEmojis(lang) {
 	    emojis = {};
-	    var langIndex = languages.indexOf(lang);
+	    var langIndex = supportedLanguages.indexOf(lang);
         if (langIndex === -1) {
-            console.error('Language not supported');
+            console.warn(`Language "${lang}" not supported. Fallback to "en-US".`);
             langIndex = 2; //en-US
 	    }
 	    emojisDef.forEach(emoji => {
-            emojis[emoji[langIndex + 2]] = [emoji[0], emoji[1]]; 
-        });
+		    var keys = emoji[langIndex + 2].split('|');
+		    keys.forEach(key => {
+			    emojis[key] = [emoji[0], emoji[1]];
+		    });
+	    });
     };
 
     function onResult (e) {
@@ -634,8 +648,9 @@
         }
 
         if (_lastInterimTranscript) { // restore currentText w/o interim transcript
-	        const t = lastText.trimEnd();
-            lastText = t.slice(0, t.length - _lastInterimTranscript.trim().length).trimEnd() + ' ';
+            const t = trimEndSpace(lastText);
+            lastText = trimEndSpace(t.slice(0, t.length - trimEndSpace(_lastInterimTranscript).length));
+            if (lastText.length > 0 && !lastText.endsWith('\n')) lastText += ' ';
             _lastInterimTranscript = '';
         }
 
@@ -691,9 +706,9 @@
 
     // Funktion, um den Text im letzten Knoten zu aktualisieren oder neuen Textknoten hinzuzufügen
     function updateContent(node, newText) {
-        newText = newText.trim() + ' ';        
+        newText = newText.trimEnd(' ') + ' ';
 
-        if (inputField.nodeName === 'TEXTAREA') inputField.value = newText;
+        if (inputField.nodeName === 'TEXTAREA') inputField.setRangeText(newText, 0, inputField.value.length, 'end');
         else if (node?.nodeType === Node.TEXT_NODE) node.textContent = newText;
         else if (node?.nodeName === 'P') {
             node.removeAttribute('placeholder'); // chatgpt   
@@ -711,7 +726,7 @@
         if (match && appendEmoji(match[2], lastText)) return;
 
         // Den Text vorbereiten (Leerzeichen hinzufügen, wenn nötig)
-        newText = lastText + newText.trim() + ' ';
+        newText = lastText + newText.trimEnd(' ') + ' ';
 
         let lastIndex = 0;
 
@@ -775,25 +790,37 @@
         }
     }
 
+    function insertText(text) {
+	    inputField.focus();
+        //
+        document.execCommand('insertText', false, text);
+    }
+    function deleteText() {
+	    inputField.focus();
+        // @ts-ignore
+	    document.execCommand('delete');
+    }
+
     function notifyInputChanged() {
-        inputField.focus();       
+        inputField.focus();
 
         // copilot
         if (inputField.nodeName === 'TEXTAREA') {
-            if (inputField.value.length > 0) {
-                const lastChar = inputField.value.slice(-1);
-                document.execCommand('insertText', false, lastChar);
+            const textarea = /** @type {HTMLTextAreaElement} */ (inputField);
+            if (textarea.value.length > 0) {
+                const lastChar = textarea.value.slice(-1);
+                textarea.value = textarea.value.slice(0,-1);
+                insertText(lastChar);
             } else {
-                inputField.value = ' ';
-                document.execCommand('delete');
+	            textarea.value = ' ';
+                deleteText();
             }
-            // TODO use Range and/or Selection-API instead
         } else {
 	        const event = new Event('input', { bubbles: true });
 	        inputField.dispatchEvent(event);
         }
 
-        setCursorToEnd(inputField);
+        setCursorToEnd();
     }
 
     function onError(event) {
@@ -824,36 +851,43 @@
     };
     
     const commandsDef = {
-        // replacements      en-US                      de-DE
-	    '...':             ['three dots',              'drei punkte'        ],
-	    '.':               ['dot',                     'punkt'              ],
-	    ',':               ['comma',                   'komma'              ],
-	    '?':               ['question mark',           'fragezeichen'       ],
-	    '???':             ['three question marks',    'drei fragezeichen'  ],
-	    '!':               ['exclamation mark',        'ausrufezeichen'     ],
-	    '!!!':             ['three exclamation marks', 'drei Ausrufezeichen'],
-	    '-':               ['dash',                    'bindestrich'        ],
-	    ':':               ['colon',                   'doppelpunkt'        ],
-        // commands          en-US                      de-DE
-	    'Delete-Word':     ['delete',                  'löschen'            ],
-        'Delete-Sentence': ['delete sentence',         'Satz löschen'       ],
-        'Delete-Paragraph':['delete paragraph',        'Absatz löschen'     ],
-	    'Delete-All':      ['delete all',              'Alles löschen'      ],
-        'New-Paragraph':   ['new paragraph',           'neuer Absatz'       ],
-	    'Undo':            ['undo',                    'rückgängig'         ],
-	    'Send':            ['send',                    'senden'             ],
-	    'Listen':          ['listen',                  'zuhören'            ],
-	    'EndVoiceInput':   ['end',                     'ende'               ],
-	    'Pause':           ['pause',                   'pause'              ]
+        // replacements      en-US                      de-DE                 fr-FR                           it-IT
+        '...':             ['three dots',              'Drei Punkte'        ,'Trois points'                 ,'tre puntini'],            
+        '.':               ['dot',                     'Punkt'              ,'Point'                        ,'punto'],
+	    ',':               ['comma',                   'Komma'              ,'Virgule'                      ,'virgola'],
+	    '?':               ['question mark',           'Fragezeichen'       ,"Point d'interrogation"        ,'punto interrogativo'],
+	    '???':             ['three question marks',    'Drei fragezeichen'  ,"Trois points d'interrogation" ,'tre punti interrogativi'],
+	    '!':               ['exclamation mark',        'Ausrufezeichen'     ,"Point d'exclamation"          ,'punto esclamativo'],
+	    '!!!':             ['three exclamation marks', 'Drei Ausrufezeichen',"Trois points d'exclamation"   ,'tre punti esclamativi'],
+	    '-':               ['dash',                    'Bindestrich'        ,"Trait d'union"                ,'trattino'],
+	    ':':               ['colon',                   'Doppelpunkt'        ,'Deux points'                  ,'due punti'],
+        // commands          en-US                      de-DE                 fr-FR                           it-IT
+	    'Delete-Word':     ['delete',                  'Löschen'            ,'Supprimer'                    ,'cancella'],
+        'Delete-Sentence': ['delete sentence',         'Satz löschen'       ,'Supprimer la phrase'          ,'cancella frase'],
+        'Delete-Paragraph':['delete paragraph',        'Absatz löschen'     ,'Supprimer le paragraphe'      ,'cancella paragrafo'],
+	    'Delete-All':      ['delete all',              'Alles löschen'      ,'Tout supprimer'               ,'cancella tutto'],
+        'New-Paragraph':   ['new paragraph',           'Neuer Absatz'       ,'Nouveau paragraphe'           ,'nuovo paragrafo'],
+	    'Undo':            ['undo',                    'Rückgängig'         ,'Annuler'                      ,'annulla'],
+	    'Send':            ['send',                    'Senden'             ,'Envoyer'                      ,'invia'],
+	    'Listen':          ['listen',                  'Zuhören'            ,'Écouter'                      ,'ascolta'],
+	    'EndVoiceInput':   ['end',                     'Ende|Beenden'       ,'Fin'                          ,'fine'],
+        'Pause':           ['pause',                   'Pause'              ,'Pause'                        ,'pausa']
     };
 
     /** commands dictionary  @type { Object < string, string >} */
     const commands = {};
+
     function translateCommands(lang) {
-        const langIndex = languages.indexOf(lang);
-	    if (langIndex === -1) throw new Error(`Language ${lang} not supported.`);
+        let langIndex = supportedLanguages.indexOf(lang);
+        if (langIndex === -1) {
+            console.warn(`Language ${lang} not supported. Fallback to en-US.`);
+            langIndex = 0;
+        }
         for (const [command, voiceCommandTable] of Object.entries(commandsDef)) {//& sprachbefehl
-            commands[voiceCommandTable[langIndex].toLowerCase()] = command;
+	        const commandsArray = voiceCommandTable[langIndex].toLowerCase().split('|');
+	        commandsArray.forEach(cmd => {
+		        commands[cmd] = command;
+	        });
 	    }
     }   
 
@@ -864,7 +898,8 @@
      */
     function checkForCommand(currentText, transcript) {
         currentText = currentText.trim();
-        transcript = transcript.trim().toLowerCase().replace(/[.,:;!?]$/, '');
+        // french: protected space bevor punctuation
+        transcript = transcript.toLowerCase().replace(/[.,:;!?\s]*$/, '');
         console.log(`command? "${currentText}" + "${transcript}"`);
 
         const command = commands[transcript];
@@ -876,25 +911,21 @@
         if (command === 'Delete-Word') {
             console.log('command DELETE');
             deleteLastWord();
+            setCursorToEnd();
         } else if (command === 'Delete-Sentence') {
 	        console.log(`command ${command}`);
             deleteLastSentence();
+            notifyInputChanged();
         } else if (command === 'Delete-Paragraph') {
 	        console.log(`command ${command}`);
             deleteLastParagraph();
+            setCursorToEnd();
         } else if (command === 'Delete-All') {
 	        console.log(`command ${command}`);
             inputField.innerHTML = ''; 
         } else if (command === 'New-Paragraph') {
             console.log(`command ${command}`);
-            // chatgpt: direct DOM manipulation to insert <p> seems to send the message immediately
-            // Simulate pressing Ctrl + Enter does work in chatgpt, but not in telegram
-            if (app.id === "chatgpt") {
-                const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, shiftKey: true });
-                inputField.dispatchEvent(event);
-            } else {
-                inputField.innerHTML = inputField.innerHTML.trimEnd() + "<br/>\n";
-            }
+            newParagraph();
         } else if (command === 'Send') {
             console.log('command SEND');
             console.log(`text: "${inputField.innerText}"`);
@@ -925,16 +956,51 @@
             addPunctuation(command);
         }
 
-        setCursorToEnd(inputField);
+        setCursorToEnd();
         return true;
     }  
+
+    function newParagraph() {
+	    // chatgpt: direct DOM manipulation to insert <p> seems to send the message immediately
+	    // Simulate pressing Ctrl + Enter does work in chatgpt, but not in telegram
+        if (app.id === 'chatgpt') {
+            const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, shiftKey: true });
+            inputField.dispatchEvent(event);
+        } else if (app.id === 'copilot') {
+            document.execCommand('insertLineBreak'); // 2 lines
+	    } else if (inputField.nodeName === 'TEXTAREA') {
+		    inputField.value += '\n';
+		    notifyInputChanged();
+	    } else {
+            // inputField.innerHTML = inputField.innerHTML.trimEnd() + "<br/>\n
+		    const n = inputField.lastChild;
+		    if (n.nodeType === Node.TEXT_NODE) n.textContent = n.textContent.trimEnd();
+		    inputField.appendChild(document.createElement('br'));
+		    inputField.appendChild(document.createTextNode('\n'));
+	    }
+    }
 
     /** Deletes the last word or punctuation (incl. non-text node) */
     function deleteLastWord() {
         console.log('deleteLastWord');
         console.log(`"${inputField.innerText}"`);
 
-        var paragraph = inputField;
+        if (inputField.nodeName === 'TEXTAREA') { // copilot
+            const textarea = /** @type {HTMLTextAreaElement} */ (inputField);
+            let text = trimEndSpace(textarea.value);
+            if (text.length === 0) { textarea.setRangeText('', 0, textarea.value.length, 'end'); return; }
+            if (text.slice(-1) === '\n') { textarea.setRangeText('', textarea.value.length - 1, textarea.value.length, 'end'); return; }
+            const match = _autoPunctuation
+	            ? text.match(/\S+$/) // with autoPunctuation we will delete the word AND punctuation at once
+	            : text.match(/[.,!?;:(){}\[\]'"<>]+$/) || text.match(/\S+$/);
+            if (!match) return;
+            text = text.substring(0, text.length - match[0].length).trimEnd();
+            const s = text.length === 0 || text.slice(-1) === '\n' ? '' : ' ';
+            textarea.setRangeText(s, text.length, textarea.value.length, 'end');
+            return;
+        }
+
+        var paragraph = /** @type {HTMLElement} */ (inputField);
         while (true) {
             const lastNode = paragraph.lastChild;
             if (!lastNode) {
@@ -972,6 +1038,15 @@
     function deleteLastParagraph() {
 	    console.log(`deleteLastParagraph`);
         //console.log(`deleteLastParagraph \nHTML: ${inputField.innerHTML}`);
+
+        if (inputField.nodeName === 'TEXTAREA') { // copilot
+            const textarea = /** @type {HTMLTextAreaElement} */ (inputField);
+            const text = textarea.value;
+            const lastIndex = text.lastIndexOf('\n');
+            if (lastIndex !== -1) textarea.setRangeText('', lastIndex, text.length, 'end');
+            else textarea.setRangeText('', 0, text.length, 'end');
+        }
+
         let deleted = false;
         // Delete backwards through the nodes until other P or BR is found
         const paragraph = inputField;
@@ -1000,6 +1075,14 @@
     function deleteLastSentence() {
 	    //console.log(`deleteLastSentence`);
         console.log(`deleteLastSentence \nHTML: ${inputField.innerHTML}`);
+
+        if (inputField.nodeName === 'TEXTAREA') { // copilot
+	        const textarea = /** @type {HTMLTextAreaElement} */ (inputField);
+            let text = textarea.value.replace(/[.?!\s]*$/, '').replace(/[^.?!\n]*$/, '');
+            if (text.length > 0 && text.slice(-1) !== '\n') text += ' ';
+            textarea.value = text;
+            return;
+        }
 
         let deleted = false;
         // Delete backwards through the nodes until a text node with a punctuation mark or other paragraph is found
@@ -1039,18 +1122,19 @@
         lastNode.textContent = lastNode.textContent.trimEnd() + punctuation + ' ';
     }
 
-    function setCursorToEnd(el) {
-        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-            el.selectionStart = el.selectionEnd = el.value.length;
-            el.focus();
+    function setCursorToEnd() {
+        if (inputField.nodeName === 'TEXTAREA') {
+	        const textarea = /** @type {HTMLTextAreaElement} */ (inputField);
+            textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+            textarea.focus();
         } else {
             const range = document.createRange();
             const selection = window.getSelection();
-            range.selectNodeContents(el);
+            range.selectNodeContents(inputField);
             range.collapse(false); // Place cursor at the end
             selection.removeAllRanges();
             selection.addRange(range);
-            el.focus(); // Focus input field again
+            inputField.focus(); // Focus input field again
         }
         console.log('Cursor set');
     }
@@ -1072,32 +1156,55 @@
         return document.querySelector(selector);
     }
 
+    function disableRecordButton(reason) {
+        if (!recordButton) return;
+        recordButton.style.color = 'gray';
+        recordButton.title = reason;
+        recordButton.removeEventListener('click', onRecordButtonClick);
+    }
+
+    function checkMicrophoneAccessAsync() {
+	    var microphonePermissionGranted = null;
+	    navigator.mediaDevices.getUserMedia({ audio: true })
+		    .then((stream) => {
+			    console.log('Microphone access allowed');
+			    microphonePermissionGranted = true;
+			    stream.getTracks().forEach(track => track.stop());
+		    })
+		    .catch(() => {
+                console.error('Microphone access denied. Speech recognition not possible!');
+                disableRecordButton('Speech recognition not possible! Microphone access denied.');
+			    microphonePermissionGranted = false;
+		    });
+    }
+
     function tryCall(f) {
 	    try { return f(); } catch (error) { return null; }
     }
 
     function detectLanguage() {
         let lang = 'en-US';
-        const oldLang = _recognition ? _recognition.lang : '';
-
+        var log = '';
         if (recognitionLanguage === 'auto') {            
             const text = tryCall(() => def.getInputFieldPlaceholderText());
             if (!text) return;
             if (text.includes('Nachricht')) lang = 'de-DE';
             else if (text.includes('eingeben')) lang = 'de-DE'; // gemini
-            if (oldLang === lang) return;
-            console.log(`Language detected: ${lang}`);
-            _lang = lang;
+            log = `language detected: ${lang}`;
         } else {
             lang = recognitionLanguage;
-            if (oldLang === lang) return;
-            console.log(`cutom language selected: ${lang}`);
+            log = `custom language selected: ${lang}`;
         }
 
-        _lang = lang;
-        translateEmojis(lang);
-	    translateCommands(lang);
-	    initSpeechRecognition(lang);
+        const commandLanguage = supportedLanguages.includes(lang) ? lang : 'en-US';
+        if (_actualCommandLanguage !== commandLanguage) {
+            _actualCommandLanguage = commandLanguage;
+            translateEmojis(commandLanguage);
+            translateCommands(commandLanguage);
+        }
+        if (_recognition?.lang !== lang) {
+            initSpeechRecognition(lang);
+        }
     }
 
     // Observe changes in the DOM to find the input container and insert the button
@@ -1113,16 +1220,16 @@
     });
     observer.observe(document.body, { childList: true, subtree: true });
     console.log('observer initialized');
-
+        
     document.addEventListener('visibilitychange', function () {
 	    if (document.visibilityState === 'hidden') {
-		    stopRecording();		    
+		    if(stopRecordingOnBlurOrHidden) stopRecording();		    
         } else if (document.visibilityState === 'visible' && inputField) {
-		    setCursorToEnd(inputField);
+		    setCursorToEnd();
 	    }
     });
     window.addEventListener('blur', function () {
-	    stopRecording();
+	    if (stopRecordingOnBlurOrHidden) stopRecording();
     });
     window.addEventListener('focus', function () {
 	    
