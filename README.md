@@ -33,6 +33,9 @@ Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/r
 2) Click the [download link](https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/WebChatSpeechRecognition.user.js)
 3) The scriptmanager recognizes the userscript, click `Install` to continue
 
+If everything has worked and you open [Telegram](https://web.telegram.org/) page for example, you can see a new microphone symbol.
+![telegram](assets/telegram.jpg)
+
 ## Voice commands¹
 
 |**Action**        | **English command**<br/>(en-US) | **German command**<br/>(de-DE) | **French command**<br/>(fr-FR) | **Italian command**<br/>(it-IT)
@@ -84,6 +87,8 @@ Example speak: "Hello user <pause 1s> `New Paragraph`"
 - Speech recognition language
 - Stop listening on blur or hidden
 - Set favorite X
+
+![menu](assets/menu.jpg)
 
 ### Microphone button color
 You can set the default microphone button color. 

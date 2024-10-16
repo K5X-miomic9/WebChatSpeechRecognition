@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Web Chat Speech Recognition Button
 // @namespace    http://tampermonkey.net/
-// @version      1.85
+// @version      1.85.1
 // @description  Adds a speech recognition button to Telegram Web, ChatGPT, Gemini and Copilot
 // @author       K5X
 // @copyright    Copyright © 2024 by K5X. All rights reserved.
@@ -41,7 +41,7 @@
  */
 
 (function () {
-    const version = '1.85'; console.log(`Script version ${version}`);
+    const version = '1.85.1'; console.log(`Script version ${version}`);
     const defaultButtonColor = '#009000';
     const defaultRecognitionLanguage = 'auto';
     const debug = true;
@@ -393,7 +393,9 @@
                 originalReplaceState(...args);
                 app.onUrlChanged();
             };
-            window.addEventListener('popstate', () => this.startDomObserver());
+            window.addEventListener('popstate', () => {
+	            app.onUrlChanged();
+            });
         },
 
         onUrlChanged: function () {
