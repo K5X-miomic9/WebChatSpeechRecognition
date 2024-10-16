@@ -631,7 +631,7 @@
             langIndex = 2; //en-US
 	    }
 	    emojisDef.forEach(emoji => {
-		    var keys = emoji[langIndex + 2].split('|');
+		    var keys = emoji[langIndex].split('|');
 		    keys.forEach(key => {
 			    emojis[key] = [emoji[0], emoji[1]];
 		    });
@@ -740,7 +740,7 @@
     function appendContent(node, lastText, newText) {
         console.log(`updateTextNodeContentWithEmoji "${lastText}" "${newText}"\n  ${node?.textContent}`);
         
-        // "Äh, Mutti, Sonne."
+        //TODO deutsch: "Äh, Mutti, Sonne."
         var match = /^(Emoji[.,]?|Äh[,.]?\sMutti[,.]?|Mutti[,.]?)\s+(\w+)[.,]?\s*$/i.exec(newText);
         if (match && appendEmoji(match[2], lastText)) return;
 
@@ -948,25 +948,14 @@
         transcript = transcript.toLowerCase().replace(/[.,:;!?\s]*$/, '');
         console.log(`command? "${currentText}" + "${transcript}"`);
 
-        for (const [key, value] of Object.entries(commands)) {
+        for (const [key, command] of Object.entries(commands)) {
 	        if (!key.endsWith('*')) continue;
-	        const prefix = key.slice(0, -1);
+            const prefix = key.slice(0, -1);
             if (transcript.startsWith(prefix)) {
+	            const rest = transcript.slice(prefix.length).trim();	            
                 console.log(`'${transcript}' matched with key '${key}'`);
-                const rest = transcript.slice(prefix.length).trim();
-                var dest = navigations[rest];
-                if (dest) {
-                    if (dest.startsWith("$GM_")) {
-                        const gmKey = dest.slice(4);
-                        const gmValue = GM_getValue(gmKey, null); // Reads the value with GM_getValue
-                        if (!gmValue) return false;
-                        dest = gmValue;
-                    }
-                    updateContent(inputField.lastChild, currentText); // remove the command from inputField
-                    notifyInputChanged();
-                    //window.location.href = dest;
-                    window.open(dest, rest);
-	                return true;
+                switch (command) {
+                    case 'NavigateTo': if (navigateTo(currentText, rest)) return true; break;
                 }
 	        }
         }
@@ -1035,7 +1024,24 @@
 
         setCursorToEnd();
         return true;
-    }  
+    }
+
+    function navigateTo(currentText, transcriptEnd) {
+        var dest = navigations[transcriptEnd];
+        if (!dest) return false;
+		if (dest.startsWith("$GM_")) {
+			const gmKey = dest.slice(4);
+			const gmValue = GM_getValue(gmKey, null); // Reads the value with GM_getValue
+			if (!gmValue) return true; // found but not configured
+			dest = gmValue;
+		}
+		updateContent(inputField.lastChild, currentText); // remove the command from inputField
+        notifyInputChanged();
+        stopRecording(true);
+		//window.location.href = dest;
+        window.open(dest, new URL(dest).hostname.replace(/\./g, '-')); // use same tab for same hostname, does not work
+		return true;	    
+    }
 
     function newParagraph() {
 	    // chatgpt: direct DOM manipulation to insert <p> seems to send the message immediately

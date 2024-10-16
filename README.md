@@ -24,6 +24,8 @@ of the websites or services used.*
 
 ## Installation
 
+I recommend using [Microsoft Edge](https://www.microsoft.com/edge) because it has better typesetting. [Google Chrome](https://www.google.com/chrome/) recognizes the same text, but does not use any punctuation.
+
 Scriptmanager Tampermonkey: [Edge](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd), [Chrome](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)  
 Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/raw/refs/heads/develop/src/WebChatSpeechRecognition.user.js)
 
@@ -157,13 +159,14 @@ TM: Tampermonkey, GM: Greasemonkey, VM: Violentmonkey, S: Scriptish, GL:Greaseli
 
 ## Data protection
 
-The developer has disclosed that none of your data will be collected or used.  
 This developer declares that your data
 - will not be sold to third parties
 - will not be used or transferred for purposes unrelated to the main functionality of the article
 - will not be used or transferred to determine creditworthiness or for loan purposes
 
-This explanation only applies to the script itself, not to the third-party services used
+This explanation only applies to the software itself, not to the third-party services used.
+
+This software uses speech data to provide a user-friendly voice control feature. The speech data is processed through the SpeechRecognition API integrated within the browser. Depending on the browser implementation, the data may be sent to external servers for processing. We do not have control over how this data is handled by the browser service provider. For more information on how the data is processed, please refer to your browser's privacy policy. You can disable the voice transer at any time.
 
 ## License
 
