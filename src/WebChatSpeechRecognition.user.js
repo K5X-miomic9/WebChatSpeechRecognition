@@ -891,7 +891,7 @@
 	    'Listen':          ['listen',                  'Zuhören'            ,'Écouter'                      ,'ascolta'],
 	    'EndVoiceInput':   ['end',                     'Ende|Beenden'       ,'Fin'                          ,'fine'],
         'Pause':           ['pause',                   'Pause'              ,'Pause'                        ,'pausa'],
-        'NavigateTo':      ['navigate to*',             'navigiere zu*'     ,'naviguer vers*',              ,'Naviga verso*']
+        'NavigateTo':      ['navigate to*',            'navigiere zu*'      ,'naviguer vers*',              ,'Naviga verso*']
     };
 
     /** commands dictionary  @type { Object < string, string >} */
@@ -912,13 +912,13 @@
     }
 
     const navigateDefs = {
-        'https://web.telegram.org/'     : ['telegram', 'telegramm|telegram', '//telegram','//telegram|telegramma'],
-        'https://gemini.google.com/'    : ['gemini'  , 'gemini'            , '//gemini', '//gemini'],
-        'https://copilot.microsoft.com/': ['copilot' , 'copilot'           , '//copilot', '//copilot'],
-        'https://chatgpt.com/'          : ['chatgpt' , 'chatgpt'           , '//chatgpt', '//chatgpt'],
-        '$GM_favorite1'                 : ['favorite 1', 'favorit 1'       , 'Favori 1', 'Preferito 1'],
-        '$GM_favorite2'                 : ['favorite 2', 'favorit 2'       , 'Favori 2', 'Preferito 2'],
-        '$GM_favorite3'                 : ['favorite 3', 'favorit 3'       , 'Favori 3', 'Preferito 3']
+        'https://web.telegram.org/'     : ['telegram'  , 'telegramm|telegram', 'telegram|Télégramme','telegram|telegramma'],
+        'https://gemini.google.com/'    : ['gemini'    , 'gemini'            , 'gemini'  , 'gemini'],
+        'https://copilot.microsoft.com/': ['copilot'   , 'copilot'           , 'copilot|Que pilot' , 'copilot'],
+        'https://chatgpt.com/'          : ['chatgpt'   , 'chatgpt'           , "chatgpt|S'agit PT" , 'chatgpt'],
+        '$GM_favorite1'                 : ['favorite 1', 'favorit 1'         , 'Favori 1', 'Preferito 1'],
+        '$GM_favorite2'                 : ['favorite 2', 'favorit 2'         , 'Favori 2', 'Preferito 2'],
+        '$GM_favorite3'                 : ['favorite 3', 'favorit 3'         , 'Favori 3', 'Preferito 3']
     }
 
     const navigations = {};

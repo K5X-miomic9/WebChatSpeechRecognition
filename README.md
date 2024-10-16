@@ -39,25 +39,66 @@ Userscript: [Download](https://github.com/K5X-miomic9/WebChatSpeechRecognition/r
 |`...`             |three dots              |drei punkte             |Trois points                  |tre puntini
 |`.`               |dot                     |punkt              	 |Point                         |punto
 |`,`               |comma                   |komma              	 |Virgule                       |virgola
-|`?`               |question mark           |fragezeichen       	 |Point d'interrogation         |punto interrogativo
-|`???`             |three question marks    |drei fragezeichen  	 |Trois points d'interrogation  |tre punti interrogativi
-|`!`               |exclamation mark        |ausrufezeichen     	 |Point d'exclamation           |punto esclamativo
-|`!!!`             |three exclamation marks |drei Ausrufezeichen	 |Trois points d'exclamation    |tre punti esclamativi
-|`-`               |dash                    |bindestrich        	 |Trait d'union                 |trattino
-|`:`               |colon                   |doppelpunkt        	 |Deux points                   |due punti
+|`?`               |question mark           |fragezeichen       	 |Point d'interrogation         |punto interrogativo
+|`???`             |three question marks    |drei fragezeichen  	 |Trois points d'interrogation  |tre punti interrogativi
+|`!`               |exclamation mark        |ausrufezeichen     	 |Point d'exclamation           |punto esclamativo
+|`!!!`             |three exclamation marks |drei Ausrufezeichen	 |Trois points d'exclamation    |tre punti esclamativi
+|`-`               |dash                    |bindestrich        	 |Trait d'union                 |trattino
+|`:`               |colon                   |doppelpunkt        	 |Deux points                   |due punti
 |**●  commands**:        										 
 |Delete-Word       | delete                 |Löschen            	 |Supprimer                     |cancella
-|Delete-Sentence   | delete sentence        |Satz löschen       	 |Supprimer la phrase           |cancella frase
-|Delete-Paragraph  | delete paragraph       |Absatz löschen     	 |Supprimer le paragraphe       |cancella paragrafo
-|Delete-All        | delete all             |Alles löschen      	 |Tout supprimer                |cancella tutto
-|New-Paragraph     | new paragraph          |Neuer Absatz       	 |Nouveau paragraphe            |nuovo paragrafo
+|Delete-Sentence   | delete sentence        |Satz löschen       	 |Supprimer la phrase           |cancella frase
+|Delete-Paragraph  | delete paragraph       |Absatz löschen     	 |Supprimer le paragraphe       |cancella paragrafo
+|Delete-All        | delete all             |Alles löschen      	 |Tout supprimer                |cancella tutto
+|New-Paragraph     | new paragraph          |Neuer Absatz       	 |Nouveau paragraphe            |nuovo paragrafo
 |Undo              | undo                   |Rückgängig         	 |Annuler                       |annulla
 |Send              | send                   |Senden             	 |Envoyer                       |invia
 |Listen            | listen                 |Zuhören            	 |Écouter                       |ascolta
 |EndVoiceInput     | end                    |Ende               	 |Fin                           |fine
 |Pause             | pause                  |Pause              	 |Pause                         |pausa
+|NavigateTo        | navigate to*           |Navigiere zu*           |naviguer vers*                |Naviga verso*
 
 ¹) Voice commands are only available if the recognition language is one of the above, in all other cases en-US is used. 
+
+To use voice commands correctly, make a short break from speaking and then speak the command.
+
+Example speak: "Hello user <pause 1s> `New Paragraph`"
+
+|`NavigateTo`<br/>**Destination**:        | **English command**<br/>(en-US) | **German command**<br/>(de-DE) | **French command**<br/>(fr-FR) | **Italian command**<br/>(it-IT)
+|------------------|------------------------|------------------------|-----------------------------|--------------------------|
+|https://web.telegram.org/     |telegram   |telegramm\|telegram |telegram     | telegram\|telegramma
+|https://gemini.google.com/    |gemini     |gemini              |gemini       | gemini
+|https://copilot.microsoft.com/|copilot    |copilot             |copilot      | copilot
+|https://chatgpt.com/          |chatgpt    |chatgpt             |chatgpt      | chatgpt
+|$GM_favorite1¹               |favorite 1 |favorit 1           |Favori 1     | Preferito 1
+|$GM_favorite2¹               |favorite 2 |favorit 2           |Favori 2     | Preferito 2
+|$GM_favorite3¹               |favorite 3 |favorit 3           |Favori 3     | Preferito 3
+
+¹) Favorites are configured by using the scriptmanager menu ["Set favorite x"](#Set-favorite-X)
+
+## Scriptmanager menu
+
+- Microphone button color
+- Speech recognition language
+- Stop listening on blur or hidden
+- Set favorite X
+
+### Microphone button color
+You can set the default microphone button color. 
+Use one of the [web color names](https://htmlcolorcodes.com/color-names/) or the color code #RRGGBB.
+You should not use yellow or red, as these colors are already used for the different states.
+
+Default: `#009000` (a green tone)
+
+### Speech recognition language
+Default: `auto`
+
+### Stop listening on blur or hidden
+Default: `true`
+
+### Set favorite X
+This setting ist used for the "Navigate To" command 
+To use this setting, navigate manually to you favorite page (or contact in telegram) and the click the 'Set favorite X' entry to save the curent url.
 
 ## Compatibility
 

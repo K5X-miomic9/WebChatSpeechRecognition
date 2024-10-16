@@ -1,3 +1,7 @@
+# 1.85
+- add voice commands "Navigate to" + "copilot" / "telegram" / "gemini" / "chatgpt"
+- and 3 configurable favorites "favorite 1" ... "favorite 3"
+
 # 1.84
 - add voice commands for 'fr-FR' and 'it-IT'
 - support protected space for 'fr-FR'
