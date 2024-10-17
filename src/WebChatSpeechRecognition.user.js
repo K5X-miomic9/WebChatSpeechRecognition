@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Web Chat Speech Recognition Button
 // @namespace    http://tampermonkey.net/
-// @version      1.85.1
+// @version      1.85.2
 // @description  Adds a speech recognition button to Telegram Web, ChatGPT, Gemini and Copilot
 // @author       K5X
 // @copyright    Copyright © 2024 by K5X. All rights reserved.
@@ -40,16 +40,20 @@
  * GM_ function are optional
  */
 
-(function () {
-    const version = '1.85.1'; console.log(`Script version ${version}`);
+/* global DOMPurify, SpeechRecognition, webkitSpeechRecognition, GM_registerMenuCommand, GM_setValue, GM_getValue */
+/* global trustedTypes */
+
+(function () {   
+
+    const version = '1.85.2'; console.log(`Script version ${version}`);
     const defaultButtonColor = '#009000';
     const defaultRecognitionLanguage = 'auto';
     const debug = true;
 
-    if (debug) window.onerror = function (e, source, line, col, error) {
-	    if (e instanceof ErrorEvent) console.error(`Global error intercepted: ${e.error}\n${e.source}:${e.lineno}:${e.colno}`);
-	    else console.error(`Global error intercepted: ${error}\n${source}:${line}:${col}\n${e}`);
-        return false;  // but does not prevent the execution of further handlers
+    if (debug) window.onerror = function (e, filename, line, col, error) {
+	    if (e instanceof ErrorEvent) console.error(`Global error intercepted: ${e.error}\n${e.filename}:${e.lineno}:${e.colno}`);
+        else console.error(`Global error intercepted: ${error}\n${filename}:${line}:${col}\n${e}`);
+        return false; // but does not prevent the execution of further handlers
     };
 
     const trimEndSpace = (s) => s.replace(/[ ]+$/, '');
@@ -70,63 +74,6 @@
     * @property {function(string): string} createScript - Validates or filters JavaScript content.
     * @property {function(string): string} createScriptURL - Validates or verifies script URLs.
     */
-
-    /** An object containing sanitization methods for different types of content. @type {TrustedTypePolicy} */
-    const policy = (function () {
-        return null;
-	    const sanitize = {
-		    createHTML: (input) => {
-			    // TODO DOMPurify or another validation/cleanup can be implemented here
-			    return input;
-		    },
-		    createScript: (input) => {
-			    // TODO Validation or filtering of JavaScript content
-			    return input;
-		    },
-		    createScriptURL: (input) => {
-			    // TODO Validation or verification of the URL
-			    return input;
-            }
-	    };
-
-        // copilot: Policy with name "default" already exists.
-        // Refused to create a TrustedTypePolicy named 'default1' because it violates the following Content Security Policy directive: "trusted-types default copilotPolicy dompurify @centro/hvc-loader".
-        /**@type {TrustedTypePolicy} */
-        var policy;
-        if (window.copilotTrustedTypesPolicy) {
-	        try {
-		        const placeholder = document.createElement('placeholder');
-                placeholder.innerHTML = window.copilotTrustedTypesPolicy.createHTML('<p>test</p>');
-                console.log('Trusted Types are activated on this page. using "copilotTrustedTypesPolicy"');
-                return window.copilotTrustedTypesPolicy;
-	        } catch (ex) { console.warn(ex); }
-        }
-        if (window.trustedTypes && window.trustedTypes.defaultPolicy) {
-            policy = window.trustedTypes.defaultPolicy;
-            if (policy) {
-                try {
-                    const placeholder = document.createElement('placeholder');
-                    placeholder.innerHTML = policy.createHTML('<p>test</p>');
-                    console.log('Trusted Types are activated on this page. using "default"');
-                    return policy;
-                } catch (ex) { console.warn(ex);}
-            }
-        }
-        if (window.trustedTypes && window.trustedTypes.createPolicy) {
-            try {
-                policy = window.trustedTypes.createPolicy('dompurify', sanitize);
-                console.log('Trusted Types are activated on this page. create "dompurify "');
-                return policy;
-            } catch (ex) {
-                console.warn('Trusted Types policy "default" is not creatable. ' + ex);
-                console.log(Object.keys(window));
-            }
-        } else {
-	        console.warn('Trusted Types are not activated on this page.');
-            policy = sanitize;
-        }
-        return policy;
-    })();
 
     (function () {
 	    /** DOMPurify
@@ -149,9 +96,10 @@
 
     /** Create DocumentFragment from HTML using DOMPurify
      * @param {String} html
-     * @returns a DocumentFragment or throws an exception if DOMPurify not available an HtmlElement (div)
+     * @returns a DocumentFragment or throws an exception; if DOMPurify not available an HtmlElement (div)
      */
     function createElementsFromHtml(html) {
+        if (!html.trim().startsWith('<')) return document.createTextNode(html);; // plain text
         if (typeof DOMPurify !== 'undefined') {
             const cleanFragment = DOMPurify.sanitize(html, {
 	            RETURN_DOM_FRAGMENT: true,
@@ -163,6 +111,10 @@
         throw 'createElementsFromHtml failed. DOMPurify is not available.';
     }
 
+    const supportedLanguages = ['en-US', 'de-DE', 'fr-FR', 'it-IT']; 
+    const lang2To4 = { en: 'en-US', de: 'de-DE', fr: 'fr-FR', it: 'it-IT' };
+
+    
     const gm = {
         available: typeof GM_registerMenuCommand === 'function',
         registerMenuCommand: typeof GM_registerMenuCommand === 'function' ? GM_registerMenuCommand : function (a, b) { },
@@ -179,12 +131,7 @@
         setLanguage: function () {
             let lang = prompt('Speech recognition langauge: \n("auto" or "en", "de", ... or "ll-CC" format)', gm.getValue('recognitionLanguage', defaultRecognitionLanguage));
             if (lang) {
-                switch (lang) {
-                    case 'en': lang = 'en-US'; break;
-                    case 'de': lang = 'de-DE'; break;
-                    case 'fr': lang = 'fr-FR'; break;
-                    case 'it': lang = 'it-IT'; break;
-                }
+                lang = lang2To4[lang] || lang;
 		        gm.setValue('recognitionLanguage', lang);
                 console.log(`Language saved: ${lang}`);
                 location.reload();
@@ -214,9 +161,7 @@
     gm.registerMenuCommand(`Stop listening on blur or hidden: ${stopRecordingOnBlurOrHidden}`, gm.setStopRecordingOnBlurOrHidden);
     gm.registerMenuCommand('Set favorite 1', () => gm.setFavorite(1));
     gm.registerMenuCommand('Set favorite 2', () => gm.setFavorite(2));
-    gm.registerMenuCommand('Set favorite 3', () => gm.setFavorite(3));
-
-    const supportedLanguages = ['en-US', 'de-DE', 'fr-FR', 'it-IT']; 
+    gm.registerMenuCommand('Set favorite 3', () => gm.setFavorite(3));    
 
     /**
     * @typedef {Object} Definition
@@ -376,6 +321,8 @@
     const app = {
         id: '',
         name: '',
+        currentCommandLanguage: '',
+        currentUILanguage: '',
 
         init: function () {
             app.setupUrlObserver();
@@ -399,6 +346,7 @@
         },
 
         onUrlChanged: function () {
+            console.log(`onUrlChanged ${window.location.href}`);
             const prev = app.id;
             if (window.location.href.startsWith('https://chatgpt.com/')) {
                 app.name = 'ChatGPT';
@@ -430,10 +378,7 @@
             console.log(`def: ${app.id}`);
         }
     };
-    app.init();
-
-    var _lang = 'en-US';
-    var _actualCommandLanguage = '';
+    app.init();    
     
     var inputField = /** @type {HTMLElement} */ (null);
     var recordButton = /** @type {HTMLElement} */ (null);
@@ -448,6 +393,7 @@
     var _forceListen = false;
     var _pause = false;
     var _isDomChanging = false;
+    var _autoStopped = false;
 
     // Function to insert the speech button
     function insertSpeechButton() {
@@ -548,29 +494,13 @@
         e.preventDefault(); // Prevents standard actions such as sending the text
         e.stopPropagation(); // Stops the propagation of events that could lead to transmission
 
-        const continuous = !e.ctrlKey;
         _pause = false;
-        if (continuous) {
-            if (_isContinuous) stopRecording(); else startContinuousRecording();
-        } else {
-            if (_isRecording) {
-                _recognition.stop(); // Cancel recording if active
-                recordButton.style.color = ''; // Reset button color
-                _isRecording = false;
-            } else {
-                // Ensure normal mode works with pauses
-                _lastFinalTranscript = Date.now();
-                _recognition.continuous = false; // Normal mode: Stop after pause
-                _recognition.start(); // Start single recording
-                recordButton.style.color = 'red'; // Turn button red
-                _isRecording = true;
-            }
-        }
+        if (_isRecording) stopRecording(); else startContinuousRecording();
     }
 
     function startContinuousRecording() {
         console.log('startContinuousRecording');
-        if (!_recognition) { console.warn("Speech recognition not initialized."); return; }
+        if (!_recognition) { console.warn('Speech recognition not initialized.'); return; }
         _lastFinalTranscript = Date.now();
         _recognition.continuous = true; // Enable continuous mode
         _finalTranscript = ''; // Clear the final transcript
@@ -580,6 +510,7 @@
         _isContinuous = true; _forceListen = true;
         _isRecording = true; // Mark recording as active
         _pause = false;
+        _autoStopped = false;
     }
 
     function stopRecording(cancel) {
@@ -591,6 +522,7 @@
         _lastInterimTranscript = '';
         _finalTranscript = '';
         _pause = false;
+        _autoStopped = false;
     }
 
     //TODO translate
@@ -621,8 +553,8 @@
 	    ['1f60e', '😎', 'cool',   'cool']
     ];
 
-    /** emoji dictionary  @type { Object < string, string >} */
-    var emojis = null;
+    /** emoji dictionary  @type { Object < string, string[] >} */
+    var emojis = { example: ['2764', '❤️']}; // example content
 
     /** Creates the emojis dictionary based on the specified language*/
     function translateEmojis(lang) {
@@ -630,10 +562,10 @@
 	    var langIndex = supportedLanguages.indexOf(lang);
         if (langIndex === -1) {
             console.warn(`Language "${lang}" not supported. Fallback to "en-US".`);
-            langIndex = 2; //en-US
+            langIndex = 0; //en-US
 	    }
 	    emojisDef.forEach(emoji => {
-		    var keys = emoji[langIndex].split('|');
+		    var keys = emoji[langIndex+2].split('|');
 		    keys.forEach(key => {
 			    emojis[key] = [emoji[0], emoji[1]];
 		    });
@@ -657,14 +589,14 @@
         let lastText = '';
         if (lastNode) {
             // chatgpt, gemini:
-            if (lastNode.nodeName === 'P') {	            
+            if (lastNode.nodeName === 'P' && lastNode instanceof HTMLElement) {	            
                 if (lastNode.classList.contains('placeholder')) lastText = '';// chatgpt
                 else lastText = lastNode.innerText.trim();
             }
             // telegram:
             else if (lastNode.nodeType === Node.TEXT_NODE) lastText = lastNode.textContent.trim();
             // copilot:
-            else if (lastNode.nodeName === 'TEXTAREA') lastText = lastNode.value;
+            else if (lastNode instanceof HTMLTextAreaElement) lastText = lastNode.value;
             // unknown:  div           
         }
 
@@ -685,15 +617,15 @@
             console.log(`Final:    "${_finalTranscript}"`);
             if (!_autoPunctuation && /[.,:;!?]$/.test(_finalTranscript)) _autoPunctuation = true;
             Object.keys(replacements).forEach(function (key) {
-                var escapedKey = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                var pattern = new RegExp(`\\b${escapedKey}\\b`, 'gi');
+                const escapedKey = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                const pattern = new RegExp(`\\b${escapedKey}\\b`, 'gi');
                 _finalTranscript = _finalTranscript.replace(pattern, replacements[key]);
             });
             _lastInterimTranscript = '';
             _lastFinalTranscript = Date.now();
 
             if (checkForCommand(lastText, _finalTranscript)) {
-                _recognition.stop(); // Restart the _recognition process
+                _recognition.stop(); // auto restart the _recognition process
             } else {
                 if (_pause) updateContent(lastNode, lastText);
                 else appendContent(lastNode, lastText, _finalTranscript);
@@ -712,6 +644,10 @@
 </div>
      */
 
+    /**
+     * 
+     * @returns {HTMLElement|Node}
+     */
     function getLastTextNodeOrParent() {
         if (!inputField) return null;
         if (inputField.nodeName === 'TEXTAREA') return inputField; // copilot
@@ -729,7 +665,7 @@
     function updateContent(node, newText) {
         newText = newText.trimEnd(' ') + ' ';
 
-        if (inputField.nodeName === 'TEXTAREA') inputField.setRangeText(newText, 0, inputField.value.length, 'end');
+        if (inputField instanceof HTMLTextAreaElement) inputField.setRangeText(newText, 0, inputField.value.length, 'end');
         else if (node?.nodeType === Node.TEXT_NODE) node.textContent = newText;
         else if (node?.nodeName === 'P') {
             node.removeAttribute('placeholder'); // chatgpt   
@@ -740,87 +676,39 @@
     }
 
     function appendContent(node, lastText, newText) {
-        console.log(`updateTextNodeContentWithEmoji "${lastText}" "${newText}"\n  ${node?.textContent}`);
+        console.log(`appendContent "${lastText}" "${newText}"\n  ${node?.textContent}`);
         
-        //TODO deutsch: "Äh, Mutti, Sonne."
-        var match = /^(Emoji[.,]?|Äh[,.]?\sMutti[,.]?|Mutti[,.]?)\s+(\w+)[.,]?\s*$/i.exec(newText);
-        if (match && appendEmoji(match[2], lastText)) return;
-
-        // Den Text vorbereiten (Leerzeichen hinzufügen, wenn nötig)
         newText = lastText + newText.trimEnd(' ') + ' ';
 
-        let lastIndex = 0;
-
-        /* Durchsuche den Text nach Emojis und füge sie hinzu
-        const emojiRegex = /Emoji\.?\s+(\w+)/g;
-        while ((match = emojiRegex.exec(newText)) != null) {
-            // Füge Text bis zum Emoji hinzu
-            if (match.index > lastIndex) {
-                const textPart = newText.substring(lastIndex, match.index);
-                if (node && node.nodeType === Node.TEXT_NODE) {
-                    node.textContent = textPart; // Setze den Text einmalig in den vorhandenen TextNode
-                } else if (node && node.nodeName.toLowerCase() === 'p') {
-                    node.innerHTML = textPart;
-                    node = null;
-                } else {
-                    inputField.appendChild(document.createTextNode(textPart)); // Füge neuen TextNode hinzu
-                }
-            }
-            appendEmoji(match[1]);
-            lastIndex = emojiRegex.lastIndex;
-        }
-        */
-        // Füge den restlichen Text nach dem letzten Emoji hinzu
-        if (lastIndex < newText.length) {
-            const remainingText = newText.substring(lastIndex);
-            if (inputField.nodeName === 'TEXTAREA') { // copilot
-                inputField.value = remainingText;
-            } else if (node && node.nodeType === Node.TEXT_NODE) {
-                node.textContent = remainingText; 
-            } else if (node && node.nodeName === 'P') {
-                const p = /**@type {HTMLElement}*/(node);
-                const lastNode = p.lastChild;
-                if (lastNode.nodeType === Node.TEXT_NODE) lastNode.textContent = remainingText;
-                else p.appendChild(document.createTextNode(remainingText));
-            } else {
-                inputField.appendChild(document.createTextNode(remainingText)); 
-            }
-        }
-
-        return;
-
-        // Add the emoji as an HTML element
-        function appendEmoji(key, currentText) {
-            key = key.toLowerCase();
-            if (!emojis[key]) return false;
-            if (node && currentText) node.textContent = currentText; // remove emoji command
-
-            const dummy = document.createElement('dummy');
-            dummy.innerHTML = policy.createHTML(def.getEmojiHTML(emojis[key])); //TODO
-            const emoji = dummy.firstChild;
-
-            if (node && node.nodeType === Node.TEXT_NODE) {
-                if (emoji.nodeType === Node.TEXT_NODE) node.textContent += emoji;
-                else node.parentNode.appendChild(emoji);
-            } else if (node && node.tagName === 'P') {
-	            node.appendChild(emoji);
-            } else {
-	            inputField.appendChild(emoji);
-            }
-            return true;
-        }
+        if (inputField instanceof HTMLTextAreaElement) { // copilot
+            inputField.value = newText;
+        } else if (node && node.nodeType === Node.TEXT_NODE) {
+            node.textContent = newText; 
+        } else if (node && node.nodeName === 'P') {
+            const p = /**@type {HTMLElement}*/(node);
+            const lastNode = p.lastChild;
+            if (lastNode.nodeType === Node.TEXT_NODE) lastNode.textContent = newText;
+            else p.appendChild(document.createTextNode(newText));
+        } else {
+            inputField.appendChild(document.createTextNode(newText)); 
+        }        
     }
 
-    function insertText(text) {
+    // NOTE: execCommand insertText, delete, insertLineBreak are required to support copilot
+    // other methods don't trigger the required event.
+    function insertTextCommand(text) {
 	    inputField.focus();
-        //
-        document.execCommand('insertText', false, text);
+	    /** @type {any} */ (document).execCommand('insertText', false, text);
     }
-    function deleteText() {
-	    inputField.focus();
-        // @ts-ignore
-	    document.execCommand('delete');
+    function deleteTextCommand() {
+        inputField.focus();
+        /** @type {any} */ (document).execCommand('delete');
     }
+    function insertLineBreakCommand() {
+        inputField.focus();
+        /** @type {any} */ (document).execCommand('insertLineBreak');
+    }
+
 
     function notifyInputChanged() {
         inputField.focus();
@@ -831,10 +719,10 @@
             if (textarea.value.length > 0) {
                 const lastChar = textarea.value.slice(-1);
                 textarea.value = textarea.value.slice(0,-1);
-                insertText(lastChar);
+                insertTextCommand(lastChar);
             } else {
 	            textarea.value = ' ';
-                deleteText();
+                deleteTextCommand();
             }
         } else {
 	        const event = new Event('input', { bubbles: true });
@@ -872,6 +760,7 @@
     };
     
     const commandsDef = {
+        // ReSharper disable StringLiteralTypo
         // replacements      en-US                      de-DE                 fr-FR                           it-IT
         '...':             ['three dots',              'Drei Punkte'        ,'Trois points'                 ,'tre puntini'],            
         '.':               ['dot',                     'Punkt'              ,'Point'                        ,'punto'],
@@ -893,27 +782,16 @@
 	    'Listen':          ['listen',                  'Zuhören'            ,'Écouter'                      ,'ascolta'],
 	    'EndVoiceInput':   ['end',                     'Ende|Beenden'       ,'Fin'                          ,'fine'],
         'Pause':           ['pause',                   'Pause'              ,'Pause'                        ,'pausa'],
-        'NavigateTo':      ['navigate to*',            'navigiere zu*'      ,'naviguer vers*',              ,'Naviga verso*']
+        // prefix commands:
+        'NavigateTo':      ['navigate to*'            ,'navigiere zu*'      ,'naviguer vers*'               ,'Naviga verso*'],
+        'Emoji':           ['emoji*'                  ,'emoji*|Äh Mutti*'   ,'emoji*'                       ,'emoji*']
+        // ReSharper restore StringLiteralTypo
     };
 
     /** commands dictionary  @type { Object < string, string >} */
     const commands = {};
 
-    function translateCommands(lang) {
-        let langIndex = supportedLanguages.indexOf(lang);
-        if (langIndex === -1) {
-            console.warn(`Language ${lang} not supported. Fallback to en-US.`);
-            langIndex = 0;
-        }
-        for (const [command, voiceCommandTable] of Object.entries(commandsDef)) {//& sprachbefehl
-	        const commandsArray = voiceCommandTable[langIndex].toLowerCase().split('|');
-	        commandsArray.forEach(cmd => {
-		        commands[cmd] = command;
-	        });
-	    }
-    }
-
-    const navigateDefs = {
+    const navigateDef = {
         'https://web.telegram.org/'     : ['telegram'  , 'telegramm|telegram', 'telegram|Télégramme','telegram|telegramma'],
         'https://gemini.google.com/'    : ['gemini'    , 'gemini'            , 'gemini'  , 'gemini'],
         'https://copilot.microsoft.com/': ['copilot'   , 'copilot'           , 'copilot|Que pilot' , 'copilot'],
@@ -932,10 +810,11 @@
 		    langIndex = 0;
 	    }
         for (const [command, voiceCommandTable] of Object.entries(source)) {
-		    const commandsArray = voiceCommandTable[langIndex].toLowerCase().split('|');
-		    commandsArray.forEach(cmd => {
-			    dest[cmd] = command;
-		    });
+		    const voiceCommands = voiceCommandTable[langIndex].toLowerCase().split('|');
+            voiceCommands.forEach(cmd => {
+                cmd = cmd.replace(/[.,!?\s]/g, ' ').replace(/\s+/g, ' ');
+                dest[cmd] = command;
+            });
 	    }
     }
 
@@ -945,32 +824,24 @@
      * @returns {boolean} - Returns true if a command is found, otherwise false.
      */
     function checkForCommand(currentText, transcript) {
-        currentText = currentText.trim();
         // french: protected space bevor punctuation
-        transcript = transcript.toLowerCase().replace(/[.,:;!?\s]*$/, '');
-        console.log(`command? "${currentText}" + "${transcript}"`);
+        var cleanedTranscript = transcript.toLowerCase().replace(/[.,:;!?\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        console.log(`checkForCommand? "${cleanedTranscript}"`);
 
         for (const [key, command] of Object.entries(commands)) {
 	        if (!key.endsWith('*')) continue;
             const prefix = key.slice(0, -1);
-            if (transcript.startsWith(prefix)) {
-	            const rest = transcript.slice(prefix.length).trim();	            
-                console.log(`'${transcript}' matched with key '${key}'`);
+            if (cleanedTranscript.startsWith(prefix)) {
+	            const rest = cleanedTranscript.slice(prefix.length).trim();	            
+                console.log(`'${cleanedTranscript}' matched with key '${key}'`);
                 switch (command) {
                     case 'NavigateTo': if (navigateTo(currentText, rest)) return true; break;
+                    case 'Emoji'     : if (appendEmoji(currentText, rest)) return true; break;
                 }
 	        }
         }
 
-        if (transcript === 'navigiere zu ' + 's master mega') {
-	        console.log("navigate");
-	        window.location.href = 'https://web.telegram.org/k/#@SmasterMega';
-	        updateContent(inputField.lastChild, currentText); // remove the command from inputField
-	        notifyInputChanged();
-	        return true;
-        }
-
-        const command = commands[transcript];
+        const command = commands[cleanedTranscript];
         if (!command) return false;
 
         updateContent(inputField.lastChild, currentText); // remove the command from inputField
@@ -989,11 +860,11 @@
             deleteLastParagraph();
             setCursorToEnd();
         } else if (command === 'Delete-All') {
-	        console.log(`command ${command}`);
-            inputField.innerHTML = ''; 
+            console.log(`command ${command}`);
+            deleteTextCommand();
         } else if (command === 'New-Paragraph') {
             console.log(`command ${command}`);
-            newParagraph();
+            appendParagraph();
         } else if (command === 'Send') {
             console.log('command SEND');
             console.log(`text: "${inputField.innerText}"`);
@@ -1028,12 +899,42 @@
         return true;
     }
 
+    function appendEmoji(currentText, key) {
+	    key = key.toLowerCase();
+        if (!emojis[key]) return false;
+        const node = getLastTextNodeOrParent();
+
+        if (node instanceof HTMLTextAreaElement) {
+            const textarea = node;
+            const emoji = def.getEmojiHTML(emojis[key]); // plain text expected (unicode char)
+            currentText = trimEndSpace(currentText);
+            if (currentText.length > 0 && currentText.slice(-1) !== '\n') currentText += ' ';
+            textarea.value = `${currentText}${emoji} `;
+            notifyInputChanged();
+            return true;
+        }
+
+        if (node && currentText != null) node.textContent = currentText; // remove emoji command
+
+        const emoji = createElementsFromHtml(def.getEmojiHTML(emojis[key]));
+
+	    if (node && node.nodeType === Node.TEXT_NODE) {
+		    if (emoji.nodeType === Node.TEXT_NODE) node.textContent += emoji;
+		    else node.parentNode.appendChild(emoji);
+	    } else if (node && node.nodeName === 'P') {
+		    node.appendChild(emoji);
+	    } else {
+		    inputField.appendChild(emoji);
+	    }
+	    return true;
+    }
+
     function navigateTo(currentText, transcriptEnd) {
         var dest = navigations[transcriptEnd];
         if (!dest) return false;
-		if (dest.startsWith("$GM_")) {
+		if (dest.startsWith('$GM_')) {
 			const gmKey = dest.slice(4);
-			const gmValue = GM_getValue(gmKey, null); // Reads the value with GM_getValue
+			const gmValue = gm.getValue(gmKey, null); // Reads the value with GM_getValue
 			if (!gmValue) return true; // found but not configured
 			dest = gmValue;
 		}
@@ -1041,19 +942,21 @@
         notifyInputChanged();
         stopRecording(true);
 		//window.location.href = dest;
-        window.open(dest, new URL(dest).hostname.replace(/\./g, '-')); // use same tab for same hostname, does not work
-		return true;	    
+        //window.open(dest, new URL(dest).hostname.replace(/\./g, '-')); // use same tab for same hostname, does not work
+        window.open(dest, '_blank');
+        if (new URL(dest).hostname === location.hostname) window.close();
+		return true;
     }
 
-    function newParagraph() {
+    function appendParagraph() {
 	    // chatgpt: direct DOM manipulation to insert <p> seems to send the message immediately
 	    // Simulate pressing Ctrl + Enter does work in chatgpt, but not in telegram
         if (app.id === 'chatgpt') {
             const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, shiftKey: true });
             inputField.dispatchEvent(event);
         } else if (app.id === 'copilot') {
-            document.execCommand('insertLineBreak'); // 2 lines
-	    } else if (inputField.nodeName === 'TEXTAREA') {
+            insertLineBreakCommand();
+        } else if (inputField instanceof HTMLTextAreaElement) {
 		    inputField.value += '\n';
 		    notifyInputChanged();
 	    } else {
@@ -1174,11 +1077,11 @@
         var paragraph = inputField;
         while (paragraph.childNodes.length > 0) {
             const lastNode = paragraph.lastChild;
-            if (lastNode.nodeName === 'P') {
+            if (/*P*/lastNode instanceof HTMLParagraphElement) {
                 if (deleted) return;
                 paragraph = lastNode;
                 continue;
-            } else if (lastNode.nodeName === 'BR') {
+            } else if (/*BR*/lastNode instanceof HTMLBRElement) {
                 if (deleted) return;
                 paragraph.removeChild(lastNode);
                 deleted = true;
@@ -1282,11 +1185,11 @@
         }
 
         const commandLanguage = supportedLanguages.includes(lang) ? lang : 'en-US';
-        if (_actualCommandLanguage !== commandLanguage) {
-            _actualCommandLanguage = commandLanguage;
+        if (app.currentCommandLanguage !== commandLanguage) {
+            app.currentCommandLanguage = commandLanguage;
             translateEmojis(commandLanguage);
-            translateCommands(commandLanguage);
-            translateDictionary(navigateDefs, navigations, commandLanguage);
+            translateDictionary(commandsDef, commands, commandLanguage);
+            translateDictionary(navigateDef, navigations, commandLanguage);
         }
         if (_recognition?.lang !== lang) {
             initSpeechRecognition(lang);
@@ -1300,22 +1203,29 @@
         if (!recordButton || !document.contains(recordButton)) {            
             if (insertSpeechButton()) {
                 inputField = querySelector(def.inputFieldSelector);
+                //startContinuousRecording();
             }
         }
         detectLanguage(); //TODO optimize performance
     });
     observer.observe(document.body, { childList: true, subtree: true });
     console.log('observer initialized');
-        
+
     document.addEventListener('visibilitychange', function () {
-	    if (document.visibilityState === 'hidden') {
-		    if(stopRecordingOnBlurOrHidden) stopRecording();		    
+        if (document.visibilityState === 'hidden') {
+            if (stopRecordingOnBlurOrHidden && _isRecording) {
+                stopRecording();
+                _autoStopped = true;
+            }
         } else if (document.visibilityState === 'visible' && inputField) {
 		    setCursorToEnd();
 	    }
     });
     window.addEventListener('blur', function () {
-	    if (stopRecordingOnBlurOrHidden) stopRecording();
+	    if (stopRecordingOnBlurOrHidden && _isRecording) {
+		    stopRecording();
+		    _autoStopped = true;
+	    }
     });
     window.addEventListener('focus', function () {
 	    

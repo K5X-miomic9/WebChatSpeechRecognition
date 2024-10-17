@@ -6,7 +6,14 @@
 		"lib": [ "es2019", "dom" ] // Füge "dom" hinzu, um Browser-APIs zu erkennen
 	},
 	"include": [
-		"**/*.js" // Includes all JavaScript files in the directory
+		"**/*.js",
+		"**/*.d.ts"
+	],
+	"exclude": [
+		"ignore",
+		"ignore/**/*",
+		"**/ignore",
+		"**/ignore/**"
 	],
 	"typeAcquisition": {
 		"include": [ "dompurify" ] // Hier fügst du DOMPurify hinzu, wenn Typdefinitionen verfügbar sind

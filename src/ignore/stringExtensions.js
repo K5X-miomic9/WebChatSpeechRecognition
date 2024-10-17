@@ -22,7 +22,9 @@ String.prototype.trimEndChar = function (charsToRemove) {
  * @returns {string} - The shortened string
  * @function external:String#trimEndSpace
  */
-String.prototype.trimEndSpace = () => this.replace(/[ ]+$/, '');
+String.prototype.trimEndSpace = function () {
+	return this.replace(/[ ]+$/, '');
+}
 
 var x = 'dsd';
 x.trimEndSpace();
