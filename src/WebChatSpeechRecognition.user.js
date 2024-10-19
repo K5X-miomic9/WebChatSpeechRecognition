@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Web Chat Speech Recognition Button
 // @namespace    http://tampermonkey.net/
-// @version      1.85.2
+// @version      1.85.3
 // @description  Adds a speech recognition button to Telegram Web, ChatGPT, Gemini and Copilot
 // @author       K5X
 // @copyright    Copyright © 2024 by K5X. All rights reserved.
@@ -45,7 +45,7 @@
 
 (function () {   
 
-    const version = '1.85.2'; console.log(`Script version ${version}`);
+    const version = '1.85.3'; console.log(`Script version ${version}`);
     const defaultButtonColor = '#009000';
     const defaultRecognitionLanguage = 'auto';
     const debug = true;
@@ -386,7 +386,7 @@
     var _isRecording = false; // Track if the recording is active
     var _isContinuous = false; // Track if continuous recording is active    
     var _finalTranscript = ''; // Store the final transcript
-    var _lastFinalTranscript = 0;
+    var _lastFinalTranscript = Date.now();
     var _lastInterimTranscript = ''; // Store the last interim result to avoid repetition
     var _commandTimeout; // Store the timeout ID for command checking
     var _autoPunctuation = false;
@@ -665,7 +665,7 @@
     function updateContent(node, newText) {
         newText = newText.trimEnd(' ') + ' ';
 
-        if (inputField instanceof HTMLTextAreaElement) inputField.setRangeText(newText, 0, inputField.value.length, 'end');
+        if (inputField instanceof HTMLTextAreaElement) inputField.value = newText;
         else if (node?.nodeType === Node.TEXT_NODE) node.textContent = newText;
         else if (node?.nodeName === 'P') {
             node.removeAttribute('placeholder'); // chatgpt   
@@ -683,12 +683,11 @@
         if (inputField instanceof HTMLTextAreaElement) { // copilot
             inputField.value = newText;
         } else if (node && node.nodeType === Node.TEXT_NODE) {
-            node.textContent = newText; 
-        } else if (node && node.nodeName === 'P') {
-            const p = /**@type {HTMLElement}*/(node);
-            const lastNode = p.lastChild;
+            node.textContent = newText;
+        } else if (node instanceof HTMLParagraphElement) {
+            const lastNode = node.lastChild;
             if (lastNode.nodeType === Node.TEXT_NODE) lastNode.textContent = newText;
-            else p.appendChild(document.createTextNode(newText));
+            else node.appendChild(document.createTextNode(newText));
         } else {
             inputField.appendChild(document.createTextNode(newText)); 
         }        
@@ -713,15 +712,14 @@
     function notifyInputChanged() {
         inputField.focus();
 
-        // copilot
-        if (inputField.nodeName === 'TEXTAREA') {
-            const textarea = /** @type {HTMLTextAreaElement} */ (inputField);
-            if (textarea.value.length > 0) {
-                const lastChar = textarea.value.slice(-1);
-                textarea.value = textarea.value.slice(0,-1);
-                insertTextCommand(lastChar);
+        if (inputField instanceof HTMLTextAreaElement) { // copilot
+            if (inputField.value.length > 0) {
+                const lastChar = inputField.value.slice(-1);
+                inputField.value = inputField.value.slice(0, -1);
+                if (lastChar === '\n') insertLineBreakCommand();
+                else insertTextCommand(lastChar);
             } else {
-	            textarea.value = ' ';
+	            inputField.value = ' ';
                 deleteTextCommand();
             }
         } else {
@@ -892,7 +890,8 @@
             document.dispatchEvent(undoEvent);
         } else {
             console.log('command PUNCTUATION');
-            addPunctuation(command);
+            appendPunctuation(command);
+            notifyInputChanged();
         }
 
         setCursorToEnd();
@@ -901,10 +900,14 @@
 
     function appendEmoji(currentText, key) {
 	    key = key.toLowerCase();
-        if (!emojis[key]) return false;
+	    if (!emojis[key]) {
+            console.log(`appendEmoji '${key}' not found`);
+		    return false;
+	    }
+        console.log(`appendEmoji '${key}'`);
         const node = getLastTextNodeOrParent();
 
-        if (node instanceof HTMLTextAreaElement) {
+        if (node instanceof HTMLTextAreaElement) { // copilot
             const textarea = node;
             const emoji = def.getEmojiHTML(emojis[key]); // plain text expected (unicode char)
             currentText = trimEndSpace(currentText);
@@ -918,8 +921,9 @@
 
         const emoji = createElementsFromHtml(def.getEmojiHTML(emojis[key]));
 
-	    if (node && node.nodeType === Node.TEXT_NODE) {
-		    if (emoji.nodeType === Node.TEXT_NODE) node.textContent += emoji;
+        if (node && node.nodeType === Node.TEXT_NODE) {
+            if (emoji instanceof String) node.textContent += emoji;
+            else if (emoji.nodeType === Node.TEXT_NODE) node.textContent += emoji.textContent;
 		    else node.parentNode.appendChild(emoji);
 	    } else if (node && node.nodeName === 'P') {
 		    node.appendChild(emoji);
@@ -948,17 +952,19 @@
 		return true;
     }
 
-    function appendParagraph() {
-	    // chatgpt: direct DOM manipulation to insert <p> seems to send the message immediately
+    function appendParagraph() {        
 	    // Simulate pressing Ctrl + Enter does work in chatgpt, but not in telegram
         if (app.id === 'chatgpt') {
+            // direct DOM manipulation to insert <p> seems to send the message immediately, so use KeyboardEvent
             const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, shiftKey: true });
             inputField.dispatchEvent(event);
-        } else if (app.id === 'copilot') {
-            insertLineBreakCommand();
-        } else if (inputField instanceof HTMLTextAreaElement) {
-		    inputField.value += '\n';
-		    notifyInputChanged();
+        } else if (inputField instanceof HTMLTextAreaElement) { // except copilot
+            inputField.value += '\n';
+            notifyInputChanged();
+        } else if (app.id === 'gemini') {
+            // manuell input (Shift+Enter )creates `<p><br/></p>` The <br> is temporary until tha <p> becomes content.
+            inputField.appendChild(document.createElement('p'));
+            inputField.lastChild.appendChild(document.createElement('br'));
 	    } else {
             // inputField.innerHTML = inputField.innerHTML.trimEnd() + "<br/>\n
 		    const n = inputField.lastChild;
@@ -994,7 +1000,7 @@
             if (!lastNode) {
                 if (paragraph.nodeName === 'P') paragraph.remove();
                 return;
-            } else if (lastNode.nodeName === 'P') {
+            } else if (lastNode instanceof HTMLParagraphElement) {
                 paragraph = lastNode;
             } else if (lastNode.nodeName === 'BR') {
                 paragraph.removeChild(lastNode);
@@ -1104,7 +1110,11 @@
         }
     }
 
-    function addPunctuation(punctuation) {
+    function appendPunctuation(punctuation) {
+        if (inputField instanceof HTMLTextAreaElement) { // copilot
+            inputField.value = trimEndSpace(inputField.value) + punctuation + ' ';
+            return;
+        }
         const nodes = inputField.childNodes;
         const lastNode = nodes[nodes.length - 1];
         lastNode.textContent = lastNode.textContent.trimEnd() + punctuation + ' ';
